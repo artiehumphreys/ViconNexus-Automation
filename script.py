@@ -4,13 +4,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 vicon = ViconNexus.ViconNexus()
-def open_file():
-    player_file = "Play-30"
+player_file = "Play-30"
     # for file in os.path(f"C:/Users/ahumphreys/EXOS_Processing/{player_file}"):
     #     vicon.OpenTrial(file, 30)
 
-    file = fr"C:\Users\ahumphreys\EXOS_Processing\{player_file}\Cleat01\{player_file.replace('-', '')}_Cleat01_Trial06"
-    vicon.OpenTrial(file, 30)
+file = fr"C:\Users\ahumphreys\EXOS_Processing\{player_file}\Cleat01\{player_file.replace('-', '')}_Cleat01_Trial07"
+vicon.OpenTrial(file, 30)
 
 subject = vicon.GetSubjectNames()[0]
 
@@ -45,6 +44,19 @@ for marker in right_foot_markers:
     accel[marker].extend(np.diff(z_coords[marker], 2))
 
 is_striking = True
+def find_strikes(marker: str = 'RHEE'):
+    has_peak = has_trough = False
+    marker_accel = accel[marker]
+    marker_velo = velo[marker]
+    for i in range(len(marker_accel)):
+        if marker_accel[i] > 5 and marker_accel[i-1] < marker_accel[i] > marker_accel[i+1]:
+            has_peak = True
+        if marker_velo[i] < -5 and marker_velo[i-1] > marker_velo[i] < marker_velo[i+1]:
+            has_trough = True
+        if has_peak and has_trough and marker_accel[i-1] > marker_velo[i-1] and marker_accel[i] < marker_velo[i]:
+            print("strike at " + str(i-1 + user_defined_region[0]))
+            has_peak = False
+            has_trough = False
 
 def plot():
     plt.figure(figsize=(10,6))
@@ -62,4 +74,5 @@ def plot():
     plt.grid(True)
     plt.show()
 
+find_strikes('RD2P')
 plot()
