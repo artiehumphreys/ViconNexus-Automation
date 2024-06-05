@@ -69,32 +69,34 @@ def find_strikes(marker: str = 'RHEE'):
     print(is_velo_trough(679 - user_defined_region[0], -2.5), is_accel_peak(680 - user_defined_region[0], 2.5))
  
     for i in range(1, len(marker_accel) - 1):
-        if is_accel_peak(i):
-            accel_peak = True
-        if foot_down and is_accel_peak(i, 0.75):
-            accel_peak_for_footup = True
- 
-        if is_velo_trough(i):
-            velo_trough_for_plant = True
-        if foot_down and is_velo_trough(i, -0.75):
-            velo_trough_for_footup = True
 
-        if not foot_down and accel_peak and velo_trough_for_plant and marker_accel[i-1] > marker_velo[i-1] and marker_accel[i] < marker_velo[i]:
-            print("strike at " + str(i-1 + user_defined_region[0]))
-            accel_peak = velo_trough_for_plant = False
-            foot_down = True
-        elif foot_down and accel_peak_for_footup and velo_trough_for_footup and marker_accel[i-1] > marker_velo[i-1] and marker_accel[i] < marker_velo[i]:
-            print("foot up action at " + str(i + user_defined_region[0]))
-            foot_down = False
-            accel_peak_for_footup = velo_trough_for_footup = False
-
-        if foot_down and is_velo_peak(i):
-            velo_peak = True
+        if foot_down:
+            if is_accel_peak(i, 0.75):
+                accel_peak_for_footup = True
+            if is_velo_trough(i, -0.75):
+                velo_trough_for_footup = True
+            if is_velo_peak(i):
+                velo_peak = True
+            
+            if accel_peak_for_footup and velo_trough_for_footup and marker_accel[i-1] > marker_velo[i-1] and marker_accel[i] < marker_velo[i]:
+                print("foot up action at " + str(i + user_defined_region[0]))
+                foot_down = False
+                accel_peak_for_footup = velo_trough_for_footup = False
+            elif velo_peak and marker_jerk[i] > marker_accel[i]:
+                print("foot up at " + str(i + user_defined_region[0]))
+                foot_down = False
+                velo_peak = False
+        else:
+            if is_accel_peak(i):
+                accel_peak = True
     
-        if foot_down and velo_peak and marker_jerk[i] > marker_accel[i]:
-            print("foot up at " + str(i + user_defined_region[0]))
-            foot_down = False
-            velo_peak = False
+            if is_velo_trough(i):
+                velo_trough_for_plant = True
+
+            if accel_peak and velo_trough_for_plant and marker_accel[i-1] > marker_velo[i-1] and marker_accel[i] < marker_velo[i]:
+                print("strike at " + str(i-1 + user_defined_region[0]))
+                accel_peak = velo_trough_for_plant = False
+                foot_down = True
 
         
         # if not accel_peak and not velo_trough_for_plant and not velo_peak and marker_velo[i] > 5:
