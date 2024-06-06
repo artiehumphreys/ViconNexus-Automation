@@ -2,13 +2,14 @@ from viconnexusapi import ViconNexus
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import heapq
 
 vicon = ViconNexus.ViconNexus()
 player_file = "Play-30"
     # for file in os.path(f"C:/Users/ahumphreys/EXOS_Processing/{player_file}"):
     #     vicon.OpenTrial(file, 30)
 
-file = fr"C:\Users\ahumphreys\EXOS_Processing\{player_file}\Cleat01\{player_file.replace('-', '')}_Cleat01_Trial07"
+file = fr"C:\Users\ahumphreys\EXOS_Processing\{player_file}\Cleat01\{player_file.replace('-', '')}_Cleat01_Trial14"
 vicon.OpenTrial(file, 30)
 
 subject = vicon.GetSubjectNames()[0]
@@ -20,30 +21,41 @@ foot_contact_markers = []
 right_foot_markers = (
     'RD2P',
     'RD5P',
-    # 'RHEE',
+    'RHEE',
 )
 
 left_foot_markers = (
-    'LD2P',
     'LD5P',
     # 'LHEE'
 )
 
 markers = left_foot_markers + right_foot_markers
 
-
+x_coords = {marker: [] for marker in markers}
+y_coords = {marker: [] for marker in markers}
 z_coords = {marker: [] for marker in markers}
-velo = {marker: [] for marker in markers}
-accel = {marker: [] for marker in markers}
+z_velo = {marker: [] for marker in markers}
+y_velo = {marker: [] for marker in markers}
+x_velo = {marker: [] for marker in markers}
+z_accel = {marker: [] for marker in markers}
+y_accel = {marker: [] for marker in markers}
+x_accel = {marker: [] for marker in markers}
 jerk = {marker: [] for marker in markers}
 jounce = {marker: [] for marker in markers}
 
 for marker in markers:
     z_coords[marker].extend(vicon.GetTrajectoryAtFrame(subject, marker, frame)[2] for frame in range(user_defined_region[0], user_defined_region[1]))
+    y_coords[marker].extend(vicon.GetTrajectoryAtFrame(subject, marker, frame)[1] for frame in range(user_defined_region[0], user_defined_region[1]))
+    x_coords[marker].extend(vicon.GetTrajectoryAtFrame(subject, marker, frame)[0] for frame in range(user_defined_region[0], user_defined_region[1]))
+
 for marker in markers:   
-    velo[marker].extend(np.gradient(z_coords[marker]))
+    z_velo[marker].extend(np.gradient(z_coords[marker]))
+    y_velo[marker].extend(np.gradient(y_coords[marker]))
+    x_velo[marker].extend(np.gradient(x_coords[marker]))
 for marker in markers:   
-    accel[marker].extend(np.diff(z_coords[marker], 2))
+    z_accel[marker].extend(np.diff(z_coords[marker], 2))
+    y_accel[marker].extend(np.diff(y_coords[marker], 2))
+    x_accel[marker].extend(np.diff(x_coords[marker], 2))
 for marker in markers:   
     jerk[marker].extend(np.diff(z_coords[marker], 3))
 for marker in markers:   
@@ -51,76 +63,44 @@ for marker in markers:
 
 def find_cycles(marker: str = 'RD2P'):
     foot_down_frames = []
-    foot_up_frames = []
-    foot_down = False
-    def is_accel_peak(i, threshold: float = 4):
-        return marker_accel[i] > threshold and marker_accel[i-1] < marker_accel[i] > marker_accel[i+1]
+    def is_z_accel_peak(i, threshold: float = 4):
+        return marker_z_accel[i] > threshold and marker_z_accel[i-1] < marker_z_accel[i] > marker_z_accel[i+1]
  
-    def is_velo_trough(i, threshold: float = -4):
-        return marker_velo[i] < threshold and marker_velo[i-1] > marker_velo[i] < marker_velo[i+1]
+    def is_z_velo_trough(i, threshold: float = -4):
+        return marker_z_velo[i] < threshold and marker_z_velo[i-1] > marker_z_velo[i] < marker_z_velo[i+1]
     
-    def is_velo_peak(i, threshold: float = 4):
-        return marker_velo[i] > threshold 
-        #and marker_velo[i-1] < marker_velo[i] > marker_velo[i+1]
-    def is_jerk_trough(i, threshold = -0.75):
-        return marker_jerk[i] < threshold and marker_jerk[i-1] > marker_jerk[i] < marker_jerk[i+1]
+    z_accel_peak = z_velo_trough = False
+    marker_z_accel = z_accel[marker]
+    marker_z_velo = z_velo[marker]
  
-    accel_peak = velo_trough = velo_trough_plant = velo_peak = jerk_trough = False
-    marker_accel = accel[marker]
-    marker_velo = velo[marker]
-    marker_jerk = jerk[marker]
- 
-    for i in range(1, len(marker_accel) - 1):
-        if not foot_down:
-            if is_accel_peak(i):
-                accel_peak = True
+    for i in range(1, len(marker_z_accel) - 1):
+        if is_z_accel_peak(i):
+            z_accel_peak = True
         
-            if is_velo_trough(i):
-                velo_trough = True
+        if is_z_velo_trough(i):
+            z_velo_trough = True
 
-            if accel_peak and velo_trough and marker_accel[i-1] > marker_velo[i-1] and marker_accel[i] < marker_velo[i]:
-                foot_down_frames.append(i-1 + user_defined_region[0])
-                #print("strike at " + str(i-1 + user_defined_region[0]))
-                accel_peak = velo_trough = jerk_trough = False
-                foot_down = True
-        else:
-            if is_velo_peak(i):
-                velo_peak = True
-        
-            if is_velo_trough(i, -2.5):
-                velo_trough_plant = True
+        if z_accel_peak and z_velo_trough and marker_z_accel[i-1] > marker_z_velo[i-1] and marker_z_accel[i] < marker_z_velo[i]:
+            foot_down_frames.append(i + user_defined_region[0])
+            z_accel_peak = z_velo_trough = False
+
             
-            if is_jerk_trough(i):
-                jerk_trough = True
-            
-            if velo_peak and jerk_trough:
-                foot_up_frames.append(i+1 + user_defined_region[0])
-                #print("foot up at " + str(i-1 + user_defined_region[0]))
-                velo_peak = velo_trough_plant = jerk_trough = False
-                foot_down = False
+    return foot_down_frames
 
-            elif velo_trough_plant and jerk_trough:
-                foot_up_frames.append(i+1 + user_defined_region[0])
-                #print("foot up at " + str(i-1 + user_defined_region[0]))
-                velo_peak = velo_trough_plant = jerk_trough = False
-                foot_down = False
-    return foot_down_frames, foot_up_frames
-
-    
-
-def plot(marker: str = 'RD2P'):
+def plot(markers):
     plt.figure(figsize=(10,6))
 
-
-    frames = np.arange(user_defined_region[0], user_defined_region[1])
-    plt.plot(frames, z_coords[marker])
-    plt.plot(frames, velo[marker], label = 'velo')
-    frames = np.arange(user_defined_region[0], user_defined_region[1] - 2)
-    plt.plot(frames, accel[marker], label = 'accel')
-    frames = np.arange(user_defined_region[0], user_defined_region[1] - 3)
-    plt.plot(frames, jerk[marker], label = 'jerk')
-    frames = np.arange(user_defined_region[0], user_defined_region[1] - 4)
-    plt.plot(frames, jounce[marker], label = 'jounce')
+    for marker in markers:
+        frames = np.arange(user_defined_region[0], user_defined_region[1])
+        # plt.plot(frames, x_coords[marker])
+        plt.plot(frames, z_coords[marker])
+        # plt.plot(frames, z_velo[marker], label = marker + ' z_velo')
+        frames = np.arange(user_defined_region[0], user_defined_region[1] - 2)
+        plt.plot(frames, z_accel[marker], label = marker + ' z accel')
+        plt.plot(frames, y_accel[marker], label = marker + ' y accel')
+        plt.plot(frames, x_accel[marker], label = marker + ' x accel')
+        frames = np.arange(user_defined_region[0], user_defined_region[1] - 3)
+        plt.plot(frames, jerk[marker], label = marker + ' z jerk')
 
     plt.xlabel('Frame')
     plt.title('Kinematics over time')
@@ -128,38 +108,43 @@ def plot(marker: str = 'RD2P'):
     plt.grid(True)
     plt.show()
 
-def calculate_cycles(cycles_a, cycles_b):
-    points = ([], [])
-    for i in range(2):
-        a_idx = b_idx = 0
-        for _ in range(max(len(cycles_a[i]), len(cycles_b[i]))):
-            diff = abs(cycles_a[i][a_idx] - cycles_b[i][b_idx])
-            if diff <= 10:
-                points[i].append((cycles_a[i][a_idx] + cycles_b[i][b_idx])//2)
-                a_idx += 1
-                b_idx += 1
-            elif i == 0:
-                if cycles_a[i][a_idx] < cycles_b[i][b_idx]:
-                    points[i].append(cycles_a[i][a_idx])
-                    a_idx += 1
-                else:
-                    points[i].append(cycles_b[i][b_idx])
-                    b_idx += 1
-            else:
-                if cycles_a[i][a_idx] > cycles_b[i][b_idx]:
-                    points[i].append(cycles_a[i][a_idx])
-                    a_idx += 1
-                else:
-                    points[i].append(cycles_b[i][b_idx])
-                    b_idx += 1
+def calculate_cycles(list1, list2, list3):
+    points = []
+    heap = []
+    final_points = []
 
-    return points
+    heapq.heappush(heap, (list1[0], 0, list1))
+    heapq.heappush(heap, (list2[0], 0, list2))
+    heapq.heappush(heap, (list3[0], 0, list3))
+
+    while heap:
+        value, idx, arr = heapq.heappop(heap)
+        points.append(value)
+        if idx + 1 < len(arr):
+            heapq.heappush(heap, (arr[idx + 1], idx + 1, arr))
+        
+    print(points)
+    diff = 0
+    in_bounds = False
+    for i in range(len(points)-1):
+        diff = abs(points[i] - points[i+1])
+        if diff <= 15 and not in_bounds:
+            final_points.append(points[i])
+            in_bounds = True
+        elif diff > 15:
+            in_bounds = False
+        
+
+
+    return final_points
+            
+
+    
 
 
 def main():
-    print(find_cycles(right_foot_markers[0]), find_cycles(right_foot_markers[1]))
-    print(calculate_cycles(find_cycles(right_foot_markers[0]), find_cycles(right_foot_markers[1])))
-    plot('RD2P')
+    print(calculate_cycles(find_cycles(right_foot_markers[0]), find_cycles(right_foot_markers[1]), find_cycles(right_foot_markers[2])))
+    plot(right_foot_markers)
 
 if __name__ == "__main__":
     main()
