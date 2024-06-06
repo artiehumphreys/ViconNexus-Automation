@@ -2,7 +2,6 @@ from viconnexusapi import ViconNexus
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.signal import argrelextrema
 
 vicon = ViconNexus.ViconNexus()
 player_file = "Play-30"
@@ -21,13 +20,13 @@ foot_contact_markers = []
 right_foot_markers = (
     'RD2P',
     'RD5P',
-    'RHEE',
+    # 'RHEE',
 )
 
 left_foot_markers = (
     'LD2P',
     'LD5P',
-    'LHEE'
+    # 'LHEE'
 )
 
 markers = left_foot_markers + right_foot_markers
@@ -63,7 +62,7 @@ def find_cycles(marker: str = 'RD2P'):
     def is_velo_peak(i, threshold: float = 4):
         return marker_velo[i] > threshold 
         #and marker_velo[i-1] < marker_velo[i] > marker_velo[i+1]
-    def is_jerk_trough(i, threshold = -1):
+    def is_jerk_trough(i, threshold = -0.75):
         return marker_jerk[i] < threshold and marker_jerk[i-1] > marker_jerk[i] < marker_jerk[i+1]
  
     accel_peak = velo_trough = velo_trough_plant = velo_peak = jerk_trough = False
@@ -82,7 +81,7 @@ def find_cycles(marker: str = 'RD2P'):
             if accel_peak and velo_trough and marker_accel[i-1] > marker_velo[i-1] and marker_accel[i] < marker_velo[i]:
                 foot_down_frames.append(i-1 + user_defined_region[0])
                 #print("strike at " + str(i-1 + user_defined_region[0]))
-                accel_peak = velo_trough = False
+                accel_peak = velo_trough = jerk_trough = False
                 foot_down = True
         else:
             if is_velo_peak(i):
@@ -97,13 +96,13 @@ def find_cycles(marker: str = 'RD2P'):
             if velo_peak and jerk_trough:
                 foot_up_frames.append(i+1 + user_defined_region[0])
                 #print("foot up at " + str(i-1 + user_defined_region[0]))
-                velo_peak = velo_trough_plant = False
+                velo_peak = velo_trough_plant = jerk_trough = False
                 foot_down = False
 
             elif velo_trough_plant and jerk_trough:
                 foot_up_frames.append(i+1 + user_defined_region[0])
                 #print("foot up at " + str(i-1 + user_defined_region[0]))
-                velo_peak = velo_trough_plant = False
+                velo_peak = velo_trough_plant = jerk_trough = False
                 foot_down = False
     return foot_down_frames, foot_up_frames
 
@@ -129,9 +128,41 @@ def plot(marker: str = 'RD2P'):
     plt.grid(True)
     plt.show()
 
-# def calculate_cycles(cycles_a, cycles_2, cycles_3)
+def calculate_cycles(cycles_a, cycles_b):
+    points = ([], [])
+    for i in range(2):
+        a_idx = b_idx = 0
+        for _ in range(max(len(cycles_a[i]), len(cycles_b[i]))):
+            diff = abs(cycles_a[i][a_idx] - cycles_b[i][b_idx])
+            if diff <= 10:
+                points[i].append((cycles_a[i][a_idx] + cycles_b[i][b_idx])//2)
+                a_idx += 1
+                b_idx += 1
+            elif i == 0:
+                if cycles_a[i][a_idx] < cycles_b[i][b_idx]:
+                    points[i].append(cycles_a[i][a_idx])
+                    a_idx += 1
+                else:
+                    points[i].append(cycles_b[i][b_idx])
+                    b_idx += 1
+            else:
+                if cycles_a[i][a_idx] > cycles_b[i][b_idx]:
+                    points[i].append(cycles_a[i][a_idx])
+                    a_idx += 1
+                else:
+                    points[i].append(cycles_b[i][b_idx])
+                    b_idx += 1
 
-for marker in right_foot_markers:
-    print(find_cycles(marker))
-find_cycles()
-plot('RD2P')
+    return points
+
+
+def main():
+    print(find_cycles(right_foot_markers[0]), find_cycles(right_foot_markers[1]))
+    print(calculate_cycles(find_cycles(right_foot_markers[0]), find_cycles(right_foot_markers[1])))
+    plot('RD2P')
+
+if __name__ == "__main__":
+    main()
+
+
+#vicon.SaveTrial()
