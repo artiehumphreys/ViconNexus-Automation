@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import heapq
 
 vicon = ViconNexus.ViconNexus()
-player_file = "Play-30"
+player_file = "Play-21"
     # for file in os.path(f"C:/Users/ahumphreys/EXOS_Processing/{player_file}"):
     #     vicon.OpenTrial(file, 30)
 
@@ -25,8 +25,9 @@ right_foot_markers = (
 )
 
 left_foot_markers = (
+    'LD2P',
     'LD5P',
-    # 'LHEE'
+    'LHEE',
 )
 
 markers = left_foot_markers + right_foot_markers
@@ -74,7 +75,6 @@ def plot(markers):
 
     for marker in markers:
         frames = np.arange(user_defined_region[0], user_defined_region[1])
-        # plt.plot(frames, x_coords[marker])
         plt.plot(frames, z_coords[marker])
         # plt.plot(frames, z_velo[marker], label = marker + ' z_velo')
         frames = np.arange(user_defined_region[0], user_defined_region[1] - 2)
@@ -101,7 +101,6 @@ def calculate_cycles(list1, list2, list3):
         if idx + 1 < len(arr):
             heapq.heappush(heap, (arr[idx + 1], idx + 1, arr))
         
-    print(points)
     diff = 0
     in_bounds = False
     for i in range(len(points)-1):
@@ -111,18 +110,26 @@ def calculate_cycles(list1, list2, list3):
             in_bounds = True
         elif diff > 15:
             in_bounds = False
-        
-
 
     return final_points
-            
 
+def fetch_plate_data():
+    deviceIDs = vicon.GetDeviceIDs()
+    for deviceID in deviceIDs:
+            name, type, rate, ids, hi,_ = vicon.GetDeviceDetails(deviceID)
+            if type == 'ForcePlate' and deviceID == 9:
+                forceID = vicon.GetDeviceOutputIDFromName(deviceID, 'Force')
+                _,_,_,_,_,channelIDs = vicon.GetDeviceOutputDetails(deviceID,forceID)
+                fx = vicon.GetDeviceChannelAtFrame(deviceID,forceID,channelIDs[0], 521)
+                fy = vicon.GetDeviceChannel(deviceID,forceID,channelIDs[1])
+                fz = vicon.GetDeviceChannel(deviceID,forceID,channelIDs[2])
+                print(fx)
     
 
 
 def main():
     print(calculate_cycles(find_cycles(right_foot_markers[0]), find_cycles(right_foot_markers[1]), find_cycles(right_foot_markers[2])))
-    plot(right_foot_markers)
+    fetch_plate_data()
 
 if __name__ == "__main__":
     main()
