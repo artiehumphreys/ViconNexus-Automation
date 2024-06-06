@@ -31,35 +31,17 @@ left_foot_markers = (
 
 markers = left_foot_markers + right_foot_markers
 
-x_coords = {marker: [] for marker in markers}
-y_coords = {marker: [] for marker in markers}
 z_coords = {marker: [] for marker in markers}
 z_velo = {marker: [] for marker in markers}
-y_velo = {marker: [] for marker in markers}
-x_velo = {marker: [] for marker in markers}
 z_accel = {marker: [] for marker in markers}
-y_accel = {marker: [] for marker in markers}
-x_accel = {marker: [] for marker in markers}
-jerk = {marker: [] for marker in markers}
-jounce = {marker: [] for marker in markers}
 
 for marker in markers:
     z_coords[marker].extend(vicon.GetTrajectoryAtFrame(subject, marker, frame)[2] for frame in range(user_defined_region[0], user_defined_region[1]))
-    y_coords[marker].extend(vicon.GetTrajectoryAtFrame(subject, marker, frame)[1] for frame in range(user_defined_region[0], user_defined_region[1]))
-    x_coords[marker].extend(vicon.GetTrajectoryAtFrame(subject, marker, frame)[0] for frame in range(user_defined_region[0], user_defined_region[1]))
 
 for marker in markers:   
     z_velo[marker].extend(np.gradient(z_coords[marker]))
-    y_velo[marker].extend(np.gradient(y_coords[marker]))
-    x_velo[marker].extend(np.gradient(x_coords[marker]))
 for marker in markers:   
     z_accel[marker].extend(np.diff(z_coords[marker], 2))
-    y_accel[marker].extend(np.diff(y_coords[marker], 2))
-    x_accel[marker].extend(np.diff(x_coords[marker], 2))
-for marker in markers:   
-    jerk[marker].extend(np.diff(z_coords[marker], 3))
-for marker in markers:   
-    jounce[marker].extend(np.diff(z_coords[marker], 4))
 
 def find_cycles(marker: str = 'RD2P'):
     foot_down_frames = []
@@ -97,10 +79,6 @@ def plot(markers):
         # plt.plot(frames, z_velo[marker], label = marker + ' z_velo')
         frames = np.arange(user_defined_region[0], user_defined_region[1] - 2)
         plt.plot(frames, z_accel[marker], label = marker + ' z accel')
-        plt.plot(frames, y_accel[marker], label = marker + ' y accel')
-        plt.plot(frames, x_accel[marker], label = marker + ' x accel')
-        frames = np.arange(user_defined_region[0], user_defined_region[1] - 3)
-        plt.plot(frames, jerk[marker], label = marker + ' z jerk')
 
     plt.xlabel('Frame')
     plt.title('Kinematics over time')
