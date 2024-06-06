@@ -9,7 +9,7 @@ player_file = "Play-30"
     # for file in os.path(f"C:/Users/ahumphreys/EXOS_Processing/{player_file}"):
     #     vicon.OpenTrial(file, 30)
 
-file = fr"C:\Users\ahumphreys\EXOS_Processing\{player_file}\Cleat01\{player_file.replace('-', '')}_Cleat01_Trial06"
+file = fr"C:\Users\ahumphreys\EXOS_Processing\{player_file}\Cleat01\{player_file.replace('-', '')}_Cleat01_Trial07"
 vicon.OpenTrial(file, 30)
 
 subject = vicon.GetSubjectNames()[0]
@@ -54,13 +54,13 @@ def find_cycles(marker: str = 'RD2P'):
     foot_down_frames = []
     foot_up_frames = []
     foot_down = False
-    def is_accel_peak(i, threshold: float =5):
+    def is_accel_peak(i, threshold: float = 4):
         return marker_accel[i] > threshold and marker_accel[i-1] < marker_accel[i] > marker_accel[i+1]
  
-    def is_velo_trough(i, threshold: float =-5):
+    def is_velo_trough(i, threshold: float = -4):
         return marker_velo[i] < threshold and marker_velo[i-1] > marker_velo[i] < marker_velo[i+1]
     
-    def is_velo_peak(i, threshold: float =5):
+    def is_velo_peak(i, threshold: float = 4):
         return marker_velo[i] > threshold 
         #and marker_velo[i-1] < marker_velo[i] > marker_velo[i+1]
     def is_jerk_trough(i, threshold = -1):
