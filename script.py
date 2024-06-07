@@ -3,6 +3,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import heapq
+from plate import Plate
 
 vicon = ViconNexus.ViconNexus()
 player_file = "Play-21"
@@ -70,7 +71,7 @@ def find_cycles(marker: str = 'RD2P'):
             
     return foot_down_frames
 
-def plot(markers):
+def plot_markers(markers):
     plt.figure(figsize=(10,6))
 
     for marker in markers:
@@ -82,6 +83,20 @@ def plot(markers):
 
     plt.xlabel('Frame')
     plt.title('Kinematics over time')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+def plot_forces(fx, fy, fz):
+    plt.figure(figsize=(10,6))
+    frames = np.arange(0, len(fx)) 
+    plt.plot(frames, fx) 
+    plt.plot(frames, fy) 
+    plt.plot(frames, fz) 
+    # plt.plot(frames, fx_2)
+
+    plt.xlabel('Frame')
+    plt.title('Force over time')
     plt.legend()
     plt.grid(True)
     plt.show()
@@ -105,10 +120,10 @@ def calculate_cycles(list1, list2, list3):
     in_bounds = False
     for i in range(len(points)-1):
         diff = abs(points[i] - points[i+1])
-        if diff <= 15 and not in_bounds:
+        if diff <= 19 and not in_bounds:
             final_points.append(points[i])
             in_bounds = True
-        elif diff > 15:
+        elif diff > 19:
             in_bounds = False
 
     return final_points
@@ -116,15 +131,41 @@ def calculate_cycles(list1, list2, list3):
 def fetch_plate_data():
     deviceIDs = vicon.GetDeviceIDs()
     for deviceID in deviceIDs:
-            name, type, rate, ids, hi,_ = vicon.GetDeviceDetails(deviceID)
-            if type == 'ForcePlate' and deviceID == 9:
-                forceID = vicon.GetDeviceOutputIDFromName(deviceID, 'Force')
-                _,_,_,_,_,channelIDs = vicon.GetDeviceOutputDetails(deviceID,forceID)
-                fx = vicon.GetDeviceChannelAtFrame(deviceID,forceID,channelIDs[0], 521)
-                fy = vicon.GetDeviceChannel(deviceID,forceID,channelIDs[1])
-                fz = vicon.GetDeviceChannel(deviceID,forceID,channelIDs[2])
-                print(fx)
+            _, type, rate, _, force_plate, _ = vicon.GetDeviceDetails(deviceID)
+            if type == 'ForcePlate':
+                wt = force_plate.WorldT
+                fx = vicon.GetDeviceChannel(deviceID, 1, 1)[0]
+                fy = vicon.GetDeviceChannel(deviceID, 1, 2)[0]
+                fz = vicon.GetDeviceChannel(deviceID, 1, 3)[0]
+                fp = Plate(find_plate_name(wt), fx, fy, fz)
+                print(fp.name)
+
+    plot_forces(fx, fy, fz)
+
+def find_plate_name(wt):
+    name = ''
+    if wt == [2712.0,300.0,0.0]:
+        name = 'Plate1'
+    elif wt == [2712.0,903.0,0.0]:
+        name = 'Plate2'
+    elif wt == [2109.0,300.0,0.0]:
+        name = 'Plate3'
+    elif wt == [2109.0,903.0,0.0]:
+        name = 'Plate4'
+    elif wt == [1506.0,300.0,0.0]:
+        name = 'Plate5'  
+    elif wt == [1506.0,903.0,0.0]:
+        name = 'Plate6'
+    elif wt == [903.0,300.0,0.0]:
+        name = 'Plate7'
+    elif wt == [903.0,903.0,0.0]:
+        name = 'Plate8'
+    elif wt == [300.0,300.0,0.0]:
+        name = 'Plate9'
+
+    return name
     
+        
 
 
 def main():
