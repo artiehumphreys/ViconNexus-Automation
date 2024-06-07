@@ -219,17 +219,15 @@ def find_plate_matches(strike_intervals):
         'Plate8' : [903.0,903.0,0.0],
         'Plate9': [300.0,300.0,0.0],
     }
-    events = {'left': vicon.GetEvents(subject, 'Right', 'Foot Strike')[0], 'right': vicon.GetEvents(subject, 'Left', 'Foot Strike')[0]}
-    for interval in strike_intervals:
-        for i in range(interval[0][0][0], interval[0][0][1]):
-            left_bbox, right_bbox = calculate_bounding_box(i // 10 - user_defined_region[0])
+    strike_events = {'right': vicon.GetEvents(subject, 'Right', 'Foot Strike')[0], 'left': vicon.GetEvents(subject, 'Left', 'Foot Strike')[0]}
+    off_events = {'right': vicon.GetEvents(subject, 'Right', 'Foot Off')[0], 'left': vicon.GetEvents(subject, 'Left', 'Foot Off')[0]}
 
-
-
-
-
-
-
+    print(strike_events)
+    for foot in strike_events:
+        for i in range(strike_events[foot][0], strike_events[foot][1]):
+            min_x, max_x, min_y, max_y = calculate_bounding_box(i - user_defined_region[0])[0] if foot == 'right' else calculate_bounding_box(i - user_defined_region[0])[1]
+            if not (2712 < min_x and 300 > max_x and 903 < min_y and 0 > max_y):
+                print(i)
 
 def find_plate_name(wt):
     name = None
