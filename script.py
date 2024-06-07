@@ -26,25 +26,50 @@ right_foot_markers = (
     'RD2P',
     'RD5P',
     'RHEE',
+    'RLATH',
+    'RD5M',
+    'RD1M',
+    'RP1M',
 )
 
 left_foot_markers = (
     'LD2P',
     'LD5P',
     'LHEE',
+    'LLATH',
+    'LD5M',
+    'LD1M',
+    'LP1M',
 )
 
 markers = left_foot_markers + right_foot_markers
 z_coords = {marker: [] for marker in markers}
+y_coords = {marker: [] for marker in markers}
+x_coords = {marker: [] for marker in markers}
 z_velo = {marker: [] for marker in markers}
 z_accel = {marker: [] for marker in markers}
 
 for marker in markers:
     z_coords[marker].extend(vicon.GetTrajectoryAtFrame(subject, marker, frame)[2] for frame in range(user_defined_region[0], user_defined_region[1]))
-for marker in markers:   
-    z_velo[marker].extend(np.gradient(z_coords[marker]))
-for marker in markers:   
+    y_coords[marker].extend(vicon.GetTrajectoryAtFrame(subject, marker, frame)[1] for frame in range(user_defined_region[0], user_defined_region[1]))
+    x_coords[marker].extend(vicon.GetTrajectoryAtFrame(subject, marker, frame)[0] for frame in range(user_defined_region[0], user_defined_region[1]))
+    z_velo[marker].extend(np.gradient(z_coords[marker])) 
     z_accel[marker].extend(np.diff(z_coords[marker], 2))
+
+
+def calculate_bounding_box(i):
+    min_x = min(x_coords[marker][i] for marker in right_foot_markers)
+    max_x = max(x_coords[marker][i] for marker in right_foot_markers)
+    min_y = min(y_coords[marker][i] for marker in right_foot_markers)
+    max_y = max(y_coords[marker][i] for marker in right_foot_markers)
+    right_box = (min_x, min_y, max_x, max_y)
+    min_x = min(x_coords[marker][i] for marker in left_foot_markers)
+    max_x = max(x_coords[marker][i] for marker in left_foot_markers)
+    min_y = min(y_coords[marker][i] for marker in left_foot_markers)
+    max_y = max(y_coords[marker][i] for marker in left_foot_markers)
+    left_box = (min_x, min_y, max_x, max_y)
+    return[right_box, left_box]
+
 
 def find_cycles(marker: str = 'RD2P'):
     foot_down_frames = []
@@ -139,6 +164,7 @@ def calculate_cycles(list1, list2, list3):
     return final_points
 
 def find_plate_data():
+    strikes = []
     deviceIDs = vicon.GetDeviceIDs()
     for deviceID in deviceIDs:
             _, type, rate, _, force_plate, _ = vicon.GetDeviceDetails(deviceID)
@@ -148,7 +174,8 @@ def find_plate_data():
                 fy = vicon.GetDeviceChannel(deviceID, 1, 2)[0]
                 fz = vicon.GetDeviceChannel(deviceID, 1, 3)[0]
                 fp = Plate(find_plate_name(wt), fx, fy, fz) 
-                print(find_plate_strikes(fp))
+                strikes.append(find_plate_strikes(fp))
+    return strikes
 
 def find_plate_strikes(fp):
     strike_intervals = []
@@ -187,6 +214,10 @@ def find_plate_matches(strike_intervals):
         'Plate9': [300.0,300.0,0.0],
     }
     events = {'left': vicon.GetEvents(subject, 'Right', 'Foot Strike')[0], 'right': vicon.GetEvents(subject, 'Left', 'Foot Strike')[0]}
+    for interval in strike_intervals:
+
+
+
 
 
 
