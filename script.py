@@ -8,12 +8,12 @@ import math
 
 
 vicon = ViconNexus.ViconNexus()
-player_file = "Play-21"
+player_file = "PLAY-06"
 
     # for file in os.path(f"C:/Users/ahumphreys/EXOS_Processing/{player_file}"):
     #     vicon.OpenTrial(file, 30)
 
-file = fr"C:\Users\ahumphreys\EXOS_Processing\{player_file}\Cleat01\{player_file.replace('-', '')}_Cleat01_Trial13"
+file = fr"C:\Users\ahumphreys\EXOS_Processing\{player_file}\Cleat01\{player_file.replace('-', '-')}_Cleat01_Trial11"
 vicon.OpenTrial(file, 30)
 
 subject = vicon.GetSubjectNames()[0]
@@ -148,8 +148,7 @@ def find_plate_data():
                 fy = vicon.GetDeviceChannel(deviceID, 1, 2)[0]
                 fz = vicon.GetDeviceChannel(deviceID, 1, 3)[0]
                 fp = Plate(find_plate_name(wt), fx, fy, fz) 
-    
-    print(find_plate_strikes(fp))
+                print(find_plate_strikes(fp))
 
 def find_plate_strikes(fp):
     strike_intervals = []
@@ -158,7 +157,7 @@ def find_plate_strikes(fp):
     start_frame = end_frame = None
     for i in range(user_defined_region[0] * 10, user_defined_region[1] * 10):
         resultant =  math.sqrt(fp.fx[i] ** 2 + fp.fy[i] ** 2 + fp.fz[i] ** 2)
-        if resultant > 25:
+        if resultant > 20:
             if not possible_strike:
                 possible_strike = True
                 start_frame = i
@@ -174,6 +173,21 @@ def find_plate_strikes(fp):
             possible_strike = False
 
     return strike_intervals
+
+def find_plate_matches(strike_intervals):
+    plate_configs = {
+        'Plate1' : [2712.0,300.0,0.0],
+        'Plate2' : [2712.0,903.0,0.0], 
+        'Plate3' : [2109.0,300.0,0.0], 
+        'Plate4' : [2109.0,903.0,0.0],
+        'Plate5' : [1506.0,300.0,0.0],
+        'Plate6' : [1506.0,903.0,0.0],
+        'Plate7' : [903.0,300.0,0.0],
+        'Plate8' : [903.0,903.0,0.0],
+        'Plate9': [300.0,300.0,0.0],
+    }
+    events = {'left': vicon.GetEvents(subject, 'Right', 'Foot Strike')[0], 'right': vicon.GetEvents(subject, 'Left', 'Foot Strike')[0]}
+
 
 
 
@@ -204,7 +218,7 @@ def find_plate_name(wt):
 
 def main():
     print(calculate_cycles(find_cycles(right_foot_markers[0]), find_cycles(right_foot_markers[1]), find_cycles(right_foot_markers[2])))
-    print(find_plate_data())
+    find_plate_data()
 
 if __name__ == "__main__":
     main()
