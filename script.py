@@ -173,8 +173,11 @@ def find_plate_data():
                 fx = vicon.GetDeviceChannel(deviceID, 1, 1)[0]
                 fy = vicon.GetDeviceChannel(deviceID, 1, 2)[0]
                 fz = vicon.GetDeviceChannel(deviceID, 1, 3)[0]
-                fp = Plate(find_plate_name(wt), fx, fy, fz) 
-                strikes.append(find_plate_strikes(fp))
+                name = find_plate_name(wt)
+                fp = Plate(name, fx, fy, fz)
+                strike = find_plate_strikes(fp)
+                if strike:
+                    strikes.append((strike, name))
     return strikes
 
 def find_plate_strikes(fp):
@@ -202,6 +205,9 @@ def find_plate_strikes(fp):
     return strike_intervals
 
 def find_plate_matches(strike_intervals):
+    left_plate_strikes = {
+
+    }
     plate_configs = {
         'Plate1' : [2712.0,300.0,0.0],
         'Plate2' : [2712.0,903.0,0.0], 
@@ -215,6 +221,9 @@ def find_plate_matches(strike_intervals):
     }
     events = {'left': vicon.GetEvents(subject, 'Right', 'Foot Strike')[0], 'right': vicon.GetEvents(subject, 'Left', 'Foot Strike')[0]}
     for interval in strike_intervals:
+        for i in range(interval[0][0][0], interval[0][0][1]):
+            left_bbox, right_bbox = calculate_bounding_box(i // 10 - user_defined_region[0])
+
 
 
 
@@ -249,7 +258,7 @@ def find_plate_name(wt):
 
 def main():
     print(calculate_cycles(find_cycles(right_foot_markers[0]), find_cycles(right_foot_markers[1]), find_cycles(right_foot_markers[2])))
-    find_plate_data()
+    find_plate_matches(find_plate_data())
 
 if __name__ == "__main__":
     main()
