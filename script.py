@@ -217,6 +217,7 @@ plate_configs = {
 }
 
 def find_plate_matches(strike_intervals):
+    results = {plate:{'left':[], 'right':[]} for plate in plate_configs.keys()}
     plate_bounds = [(coords[0] - 300, coords[0] + 300, coords[1] - 300, coords[1] + 300) for coords in plate_configs.values()]
     strike_events = {'right': vicon.GetEvents(subject, 'Right', 'Foot Strike')[0], 'left': vicon.GetEvents(subject, 'Left', 'Foot Strike')[0]}
     off_events = {'right': vicon.GetEvents(subject, 'Right', 'Foot Off')[0], 'left': vicon.GetEvents(subject, 'Left', 'Foot Off')[0]}
@@ -232,7 +233,19 @@ def find_plate_matches(strike_intervals):
                 for plate in plate_bounds:
                     plate_name = find_plate_key(plate[0], plate[2])
                     if plate_name and is_intersecting(bbox, plate) and frame_in_strike_interval(j, strike_intervals, plate_name):
-                        print(f"Foot: {foot} in plate: {plate_name} at frame {j}")
+                        results[plate_name][foot].append(j)
+    results = format_results(results)
+    return results
+
+def format_results(results):
+    for plate in results:
+        left = results[plate]['left']
+        right = results[plate]['right']
+        if left:
+            results[plate]['left'] = (min(left), max(left))
+        if right:
+            results[plate]['right'] = (min(right), max(right))
+    return results
 
 def frame_in_strike_interval(j, strike_intervals, plate):
     for intervals, each_plate in strike_intervals:
@@ -282,9 +295,8 @@ def find_plate_name(wt):
         raise Exception("Not a valid force plate")
 
 def main():
-    print(calculate_cycles(find_cycles(right_foot_markers[0]), find_cycles(right_foot_markers[1]), find_cycles(right_foot_markers[2])))
-    print(find_plate_data())
-    find_plate_matches(find_plate_data())
+    # print(calculate_cycles(find_cycles(right_foot_markers[0]), find_cycles(right_foot_markers[1]), find_cycles(right_foot_markers[2])))
+    print(find_plate_matches(find_plate_data()))
 
 if __name__ == "__main__":
     main()
