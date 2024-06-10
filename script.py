@@ -67,7 +67,7 @@ def calculate_bounding_box(i):
     max_x = max(x_coords[marker][i] for marker in left_foot_markers)
     min_y = min(y_coords[marker][i] for marker in left_foot_markers)
     max_y = max(y_coords[marker][i] for marker in left_foot_markers)
-    left_box = (min_x, min_y, max_x, max_y)
+    left_box = (min_x, max_x, min_y, max_y)
     return[right_box, left_box]
 
 
@@ -205,9 +205,6 @@ def find_plate_strikes(fp):
     return strike_intervals
 
 def find_plate_matches(strike_intervals):
-    left_plate_strikes = {
-
-    }
     plate_configs = {
         'Plate1' : [2712.0,300.0,0.0],
         'Plate2' : [2712.0,903.0,0.0], 
@@ -219,15 +216,34 @@ def find_plate_matches(strike_intervals):
         'Plate8' : [903.0,903.0,0.0],
         'Plate9': [300.0,300.0,0.0],
     }
+    plate_bounds = [(plate_configs.get(plate)[0] - 300, plate_configs.get(plate)[0] + 300, plate_configs.get(plate)[1] - 300, plate_configs.get(plate)[1] + 300) for plate in plate_configs]
     strike_events = {'right': vicon.GetEvents(subject, 'Right', 'Foot Strike')[0], 'left': vicon.GetEvents(subject, 'Left', 'Foot Strike')[0]}
     off_events = {'right': vicon.GetEvents(subject, 'Right', 'Foot Off')[0], 'left': vicon.GetEvents(subject, 'Left', 'Foot Off')[0]}
 
-    print(strike_events)
+    print(strike_events, off_events)
     for foot in strike_events:
-        for i in range(strike_events[foot][0], strike_events[foot][1]):
-            min_x, max_x, min_y, max_y = calculate_bounding_box(i - user_defined_region[0])[0] if foot == 'right' else calculate_bounding_box(i - user_defined_region[0])[1]
-            if not (2712 < min_x and 300 > max_x and 903 < min_y and 0 > max_y):
-                print(i)
+        for i in range(len(off_events[foot])):
+            for j in range(strike_events[foot][i], off_events[foot][i]):
+                bbox = calculate_bounding_box(j - user_defined_region[0])[0] if foot == 'right' else calculate_bounding_box(j - user_defined_region[0])[1]
+                min_x, max_x, min_y, max_y = bbox
+                if (2712 < min_x and 300 > max_x and 903 < min_y and 0 > max_y):
+                    continue
+                for plate in plate_bounds:
+                    if is_intersecting(bbox, plate):
+                        for key, value in plate_configs.items():
+                            if value == [plate[0] + 300, plate[2] + 300, 0.0]:
+                                plate_name = key
+                        print(f"Foot: {foot} in plate: {plate_name} at frame {j}")
+
+def is_intersecting(box1, box2):
+    min_x1, max_x1, min_y1, max_y1 = box1
+    min_x2, max_x2, min_y2, max_y2 = box2
+    print(box1, box2)
+    x_overlap = not(max_x1 < min_x2 or max_x2 < min_x1)
+    y_overlap = not(max_y1 < min_y2 or max_y2 < min_y1)
+    return x_overlap and y_overlap
+
+
 
 def find_plate_name(wt):
     name = None
