@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import heapq
 from plate import Plate
 import math
+import sys
 
 
 vicon = ViconNexus.ViconNexus()
@@ -152,7 +153,6 @@ def calculate_cycles(list1, list2, list3):
 
     diff = 0
     in_bounds = False
-    print(points)
     for i in range(len(points)-1):
         diff = abs(points[i] - points[i+1])
         if diff <= 19 and not in_bounds:
@@ -163,7 +163,9 @@ def calculate_cycles(list1, list2, list3):
 
     return final_points
 
+fp_data = {}
 def find_plate_data():
+    global fp
     strikes = []
     deviceIDs = vicon.GetDeviceIDs()
     for deviceID in deviceIDs:
@@ -173,7 +175,25 @@ def find_plate_data():
                 fx = vicon.GetDeviceChannel(deviceID, 1, 1)[0]
                 fy = vicon.GetDeviceChannel(deviceID, 1, 2)[0]
                 fz = vicon.GetDeviceChannel(deviceID, 1, 3)[0]
+                copx = vicon.GetDeviceChannel(deviceID, 2, 1)[0]
+                copy = vicon.GetDeviceChannel(deviceID, 2, 2)[0]
+                copz = vicon.GetDeviceChannel(deviceID, 2, 3)[0]
+                mx = vicon.GetDeviceChannel(deviceID, 3, 1)[0]
+                my = vicon.GetDeviceChannel(deviceID, 3, 2)[0]
+                mz = vicon.GetDeviceChannel(deviceID, 3, 3)[0]
                 name = find_plate_name(wt)
+                if name:
+                    fp_data[name] = {
+                        'fx': fx,
+                        'fy': fy,
+                        'fz': fz,
+                        'copx': copx,
+                        'copy': copy,
+                        'copz': copz,
+                        'mx': mx,
+                        'my': my,
+                        'mz': mz
+                    }
                 fp = Plate(name, fx, fy, fz)
                 strike = find_plate_strikes(fp)
                 if strike:
@@ -316,9 +336,62 @@ def find_plate_name(wt):
     else:
         raise Exception("Not a valid force plate")
 
+def find_force_matrix(results):
+    global fp_data
+    rotation_matrix = np.eye(3)
+    translation_vector = np.array([0,0,0])
+    x270_matrix = np.array([[0,-1,0], [1,0,0], [0,0,-1]])
+
+    left_matrix = np.zeros((user_defined_region[1] * 10, 9), dtype='float')
+    right_matrix = np.zeros((user_defined_region[1] * 10, 9), dtype='float')
+    for plate in results:
+        if not results[plate]['left'] and not results[plate]['right']:
+            continue
+        for side in ['left', 'right']:
+            intervals = results[plate][side]
+            for interval in intervals:
+                for j in range(interval[0] * 10, interval[1] * 10):
+                    fx = fp_data[plate]['fx'][j- 10]
+                    fy = fp_data[plate]['fy'][j- 10]
+                    fz = fp_data[plate]['fz'][j- 10]
+                    copx = fp_data[plate]['copx'][j- 10]
+                    copy = fp_data[plate]['copy'][j- 10]
+                    copz = fp_data[plate]['copz'][j- 10]
+                    mx = fp_data[plate]['mx'][j- 10]
+                    my = fp_data[plate]['my'][j- 10]
+                    mz = fp_data[plate]['mz'][j- 10]
+ 
+                    force_on_plate = np.array([fx, fy, fz])
+                    moment_on_plate = np.array([mx, my, mz])
+                    rel_pos_on_plate = np.array([copx, copy, copz])
+ 
+                    world_force = np.dot(force_on_plate, rotation_matrix.T)
+                    world_moment = np.dot(moment_on_plate, rotation_matrix.T)
+                    world_loc = np.dot(rel_pos_on_plate, rotation_matrix.T) + translation_vector
+ 
+                    adj_moment = np.zeros(3)
+                    adj_moment[2] = world_moment[2] + world_force[0] * world_loc[1] - world_force[1] * world_loc[0]
+ 
+                    force_cols = np.dot(-world_force, x270_matrix)
+                    torque_cols = np.dot(-adj_moment / 1000, x270_matrix)
+                    cop_cols = np.dot(world_loc / 1000, x270_matrix)
+                    if side == 'left':
+                        left_matrix[j, :3] += force_cols
+                        left_matrix[j, 3:6] += cop_cols
+                        left_matrix[j, 6:] += torque_cols
+                    else:
+                        right_matrix[j, :3] += force_cols
+                        right_matrix[j, 3:6] += cop_cols
+                        right_matrix[j, 6:] += torque_cols
+ 
+    return left_matrix, right_matrix
 def main():
+    np.set_printoptions(threshold=sys.maxsize)
+
     # print(calculate_cycles(find_cycles(right_foot_markers[0]), find_cycles(right_foot_markers[1]), find_cycles(right_foot_markers[2])))
-    print(find_plate_matches(find_plate_data()))
+    results = find_plate_matches(find_plate_data())
+    left, right = find_force_matrix(results)
+    print(right[6160], right[6170], right[6180], right[6190], right[6200])
 
 if __name__ == "__main__":
     main()
