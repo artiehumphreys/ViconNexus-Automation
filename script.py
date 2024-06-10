@@ -239,12 +239,34 @@ def find_plate_matches(strike_intervals):
 
 def format_results(results):
     for plate in results:
+        left_intervals = []
+        right_intervals = []
         left = results[plate]['left']
         right = results[plate]['right']
         if left:
-            results[plate]['left'] = (min(left), max(left))
+            start = left[0]
+            end = left[0]
+            for i in range (1, len(left)):
+                if left[i] == end + 1:
+                    end = left[i]
+                else:
+                    left_intervals.append((start, end))
+                    start = left[i]
+                    end = left[i]
+            left_intervals.append((start, end)) 
+            results[plate]['left'] = left_intervals
         if right:
-            results[plate]['right'] = (min(right), max(right))
+            start = right[0]
+            end = right[0]
+            for i in range (1, len(right)):
+                if right[i] == end + 1:
+                    end = right[i]
+                else:
+                    right_intervals.append((start, end))
+                    start = right[i]
+                    end = right[i]
+            right_intervals.append((start, end)) 
+            results[plate]['right'] = right_intervals
     return results
 
 def frame_in_strike_interval(j, strike_intervals, plate):
