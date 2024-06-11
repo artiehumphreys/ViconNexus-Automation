@@ -169,20 +169,23 @@ def find_plate_data():
     strikes = []
     deviceIDs = vicon.GetDeviceIDs()
     for deviceID in deviceIDs:
-            _, type, rate, _, force_plate, _ = vicon.GetDeviceDetails(deviceID)
+            _, type, rate, output, force_plate, channel = vicon.GetDeviceDetails(deviceID)
             if type == 'ForcePlate':
                 wt = force_plate.WorldT
                 wr = force_plate.WorldR
                 fx = vicon.GetDeviceChannel(deviceID, 1, 1)[0]
                 fy = vicon.GetDeviceChannel(deviceID, 1, 2)[0]
                 fz = vicon.GetDeviceChannel(deviceID, 1, 3)[0]
-                copx = vicon.GetDeviceChannel(deviceID, 3, 1)[0]
-                copy = vicon.GetDeviceChannel(deviceID, 3, 2)[0]
+                copx = vicon.GetDeviceChannel(deviceID, 3, 2)[0]
+                copy = vicon.GetDeviceChannel(deviceID, 3, 1)[0]
                 copz = vicon.GetDeviceChannel(deviceID, 3, 3)[0]
                 mx = vicon.GetDeviceChannel(deviceID, 2, 2)[0]
                 my = vicon.GetDeviceChannel(deviceID, 2, 1)[0]
                 mz = vicon.GetDeviceChannel(deviceID, 2, 3)[0]
                 name = find_plate_name(wt)
+                for x in range(len(copx)):
+                    copx[x] = wt[0] - copx[x]
+                    copy[x] += wt[1]
                 if name:
                     fp_data[name] = {
                         'fx': fx,
@@ -343,7 +346,7 @@ def find_force_matrix(results):
     global fp_data
     a = 3 * np.pi / 2
 
-    x270_matrix = [[1, 0, 0], [0, -np.sin(a), -np.cos(a)], [0, np.cos(a), np.sin(a)]]
+    x270_matrix = [[1, 0, 0],  [0, np.cos(a), -np.sin(a)], [0, np.sin(a), np.cos(a)]]
 
     left_matrix = np.zeros((user_defined_region[1] * 10, 9), dtype='float')
     right_matrix = np.zeros((user_defined_region[1] * 10, 9), dtype='float')
@@ -369,37 +372,37 @@ def find_force_matrix(results):
                     my = fp_data[plate]['my'][j- 10]
                     mz = fp_data[plate]['mz'][j- 10]
                     wr = fp_data[plate]['wr']
-                    wt = fp_data[plate]['wt']
-                    if (plate == 'Plate4' or plate == 'Plate3') and j in [6170, 6180, 6190, 6200]:
-                        print(copx, copy, copz, mx, my, mz)
  
                     force_on_plate = np.array([fx, fy, fz])
                     moment_on_plate = np.array([mx, my, mz])
                     rel_pos_on_plate = np.array([copx, copy, copz])
 
                     rotW = [wr[:3], wr[3:6], wr[6:]]
+                    if j in [6170, 6180, 6190, 6200]:
+                        print(moment_on_plate)
  
-                    world_force = force_on_plate @ rotW
-                    world_moment = moment_on_plate @ rotW
-                    world_loc = rel_pos_on_plate @ rotW
+                    world_force = rotW @ force_on_plate
+                    world_moment = rotW @ moment_on_plate
+                    world_loc = rotW @ rel_pos_on_plate
 
                     adj_moment = np.zeros(3)
                     adj_moment[2] = world_moment[2] + world_force[0] * world_loc[1] - world_force[1] * world_loc[0]
  
-                    force_cols = -world_force @ x270_matrix
-                    torque_cols = -adj_moment @ x270_matrix
-                    cop_cols = (world_loc + wt) @ x270_matrix
+                    # Only for OpenSim:
+                    # force_cols = -world_force 
+                    # torque_cols = -adj_moment @ x270_matrix
+                    # cop_cols = world_loc @ x270_matrix
                     
                     # total_y_force[j] += force_cols[:][2]
                     # total_x_moment[j] += cop_cols[0] * force_cols[1]
                     # total_z_moment[j] += cop_cols[2] * force_cols[1]
 
                     if side == 'left':
-                        left_matrix[j, :3] += force_cols
+                        left_matrix[j, :3] += world_force
                         left_matrix[j, 3:6] += world_moment
                         left_matrix[j, 6:] += world_loc
                     else:
-                        right_matrix[j, :3] += force_cols
+                        right_matrix[j, :3] += world_force
                         right_matrix[j, 3:6] += world_moment
                         right_matrix[j, 6:] += world_loc
 
@@ -419,7 +422,7 @@ def main():
     # print(calculate_cycles(find_cycles(right_foot_markers[0]), find_cycles(right_foot_markers[1]), find_cycles(right_foot_markers[2])))
     results = find_plate_matches(find_plate_data())
     left, right = find_force_matrix(results)
-    #print(right[6170], right[6180], right[6190], right[6200])
+    print(right[6170], right[6180], right[6190], right[6200])
 
 if __name__ == "__main__":
     main()
