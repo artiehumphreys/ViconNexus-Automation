@@ -358,7 +358,8 @@ def find_force_matrix(results):
     total_x_moment = np.zeros(user_defined_region[1] * 10)
     total_z_moment = np.zeros(user_defined_region[1] * 10)
     total_y_moment = np.zeros(user_defined_region[1] * 10)
-    M_y = np.zeros(user_defined_region[1] * 10)
+    processed_frames_right = set()
+    processed_frames_left = set()
     for plate in results:
         if not results[plate]['left'] and not results[plate]['right']:
             continue
@@ -400,7 +401,7 @@ def find_force_matrix(results):
                     total_z_moment[j] += -(rel_pos_on_plate[1] * world_force[0] - rel_pos_on_plate[0] * world_force[1])
                     total_y_moment[j] += -rel_pos_on_plate[0] * world_force[2]
 
-                    if j == 6200:
+                    if j == 6800:
                         print("world force: " + str(world_force))
                         print("world moment: " + str(world_moment))
                         print("relative pos: " + str(rel_pos_on_plate))
@@ -408,12 +409,14 @@ def find_force_matrix(results):
                         print("moment: " + str(total_x_moment[j]))
                     if side == 'left':
                         left_matrix[j, :3] += world_force
-                        left_matrix[j, 3:6] = [total_x_moment[j], total_y_moment[j], total_z_moment[j]]
+                        left_matrix[j, 3:6] = [total_x_moment[j], total_y_moment[j], total_z_moment[j]] if j in processed_frames_left else world_moment
                         left_matrix[j, 6:] += rel_pos_on_plate
+                        processed_frames_left.add(j)
                     else:
                         right_matrix[j, :3] += world_force
-                        right_matrix[j, 3:6] = [total_x_moment[j], total_y_moment[j], total_z_moment[j]]
+                        right_matrix[j, 3:6] = [total_x_moment[j], total_y_moment[j], total_z_moment[j]] if j in processed_frames_right else world_moment
                         right_matrix[j, 6:] += rel_pos_on_plate
+                        processed_frames_right.add(j)
  
     return left_matrix, right_matrix
 def main():
