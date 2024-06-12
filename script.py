@@ -184,8 +184,12 @@ def find_plate_data():
                 mz = vicon.GetDeviceChannel(deviceID, 2, 3)[0]
                 name = find_plate_name(wt)
                 for x in range(len(copx)):
-                    copx[x] = wt[0] - copx[x]
-                    copy[x] += wt[1]
+                    a = copx[x]
+                    b = copy[x]
+                    copx[x] = wt[0] - b
+                    copy[x] = wt[1] + a
+                    if x == 6190 and name == 'Plate3':
+                        print(copx[x], copy[x], wt[1] + copx[x])
                 if name:
                     fp_data[name] = {
                         'fx': fx,
@@ -390,28 +394,23 @@ def find_force_matrix(results):
                     # force_cols = -world_force 
                     # torque_cols = -adj_moment @ x270_matrix
                     # cop_cols = world_loc @ x270_matrix
+                    if j == 6200:
+                        print(force_on_plate, world_force)
 
                     total_y_force[j] += world_force[1]
-                    total_x_moment[j] += world_loc[0] * world_force[1]
-                    total_z_moment[j] += world_loc[2] * world_force[1]
-                    total_y_moment[j] += world_moment[1]
-
+                    total_x_moment[j] += rel_pos_on_plate[1] * world_force[2]
+                    total_z_moment[j] += -(rel_pos_on_plate[1] * world_force[0] - rel_pos_on_plate[0] * world_force[1])
+                    total_y_moment[j] += -rel_pos_on_plate[0] * world_force[2]
                     if side == 'left':
                         left_matrix[j, :3] += world_force
-                        left_matrix[j, 3:6] += world_moment
                         left_matrix[j, 6:] += world_loc
                     else:
                         right_matrix[j, :3] += world_force
-                        right_matrix[j, 3:6] += world_moment
                         right_matrix[j, 6:] += world_loc
-
-    print(total_y_moment[6200])
-
-    # CoP_xyz = np.zeros((user_defined_region[1] * 10, 3))
-    # CoP_xyz[:, 0] = total_x_moment / total_y_force
-    # CoP_xyz[:, 1] = 0
-    # CoP_xyz[:, 2] = total_z_moment / total_y_force
-    # CoP_xyz[np.isnan(CoP_xyz)] = 0
+    right_matrix[:, 3] += total_x_moment
+    right_matrix[:, 4] += total_y_moment
+    right_matrix[:, 5] += total_z_moment
+    print(total_x_moment[6200], right_matrix[6200, 3])
  
     return left_matrix, right_matrix
 def main():
@@ -420,7 +419,8 @@ def main():
     # print(calculate_cycles(find_cycles(right_foot_markers[0]), find_cycles(right_foot_markers[1]), find_cycles(right_foot_markers[2])))
     results = find_plate_matches(find_plate_data())
     left, right = find_force_matrix(results)
-    print(right[6170], right[6180], right[6190], right[6200])
+    # np.savetxt('right_foot_results.csv',  right, delimiter=",", header="Fx, Fy, Fz, Mx, My, Mz, CoPx, CoPy, CoPz")
+    print(right[6200])
 
 if __name__ == "__main__":
     main()
