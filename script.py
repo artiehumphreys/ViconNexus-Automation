@@ -347,19 +347,19 @@ def find_plate_name(wt):
 def find_force_matrix(results):
     global fp_data
     a = 3 * np.pi / 2
+    temp_side = None
 
     x270_matrix = [[1, 0, 0],  [0, np.cos(a), -np.sin(a)], [0, np.sin(a), np.cos(a)]]
     summ = 0
     left_matrix = np.zeros((user_defined_region[1] * 10, 9), dtype='float')
     right_matrix = np.zeros((user_defined_region[1] * 10, 9), dtype='float')
     total_y_force = 0
-    total_x_moment = np.zeros(user_defined_region[1] * 10)
-    total_z_moment = np.zeros(user_defined_region[1] * 10)
-    total_y_moment = np.zeros(user_defined_region[1] * 10)
-    CoP_x, CoP_y, CoP_z = calculate_overall_center_of_pressure(results)
     processed_frames_right = set()
     processed_frames_left = set()
     for plate in results:
+        total_x_moment = np.zeros(user_defined_region[1] * 10)
+        total_z_moment = np.zeros(user_defined_region[1] * 10)
+        total_y_moment = np.zeros(user_defined_region[1] * 10)
         if not results[plate]['left'] and not results[plate]['right']:
             continue
         for side in ['left', 'right']:
@@ -397,78 +397,63 @@ def find_force_matrix(results):
 
                     total_y_force += world_force[1]
                     total_x_moment[j] += rel_pos_on_plate[1] * world_force[2]
-                    total_z_moment[j] += -(rel_pos_on_plate[1] * world_force[0] - rel_pos_on_plate[0] * world_force[1])
+                    total_z_moment[j] = -(rel_pos_on_plate[1] * world_force[0] - rel_pos_on_plate[0] * world_force[1])
                     total_y_moment[j] += -rel_pos_on_plate[0] * world_force[2]
 
-                    if j == 6800:
-                        print("world force: " + str(world_force))
-                        print("world moment: " + str(world_moment))
-                        print("relative pos: " + str(rel_pos_on_plate))
-                        print("plate: ", plate)
-                        print("moment: " + str(total_x_moment[j]))
+                    CoP_x, CoP_y, CoP_z = calculate_overall_center_of_pressure(results, plate, side, interval, j)
+
                     if side == 'left':
                         left_matrix[j, :3] += world_force
-                        left_matrix[j, 3:6] = [total_x_moment[j], total_y_moment[j], total_z_moment[j]] if j in processed_frames_left else world_moment
-                        left_matrix[j, 6:] = [CoP_x[j], CoP_y[j], CoP_z[j]]
+                        left_matrix[j, 3:6] += [total_x_moment[j], total_y_moment[j], total_z_moment[j]]
+                        left_matrix[j, 6:] = [CoP_x, CoP_y, CoP_z]
                         processed_frames_left.add(j)
                     else:
                         right_matrix[j, :3] += world_force
-                        right_matrix[j, 3:6] = [total_x_moment[j], total_y_moment[j], total_z_moment[j]] if j in processed_frames_right else world_moment
-                        right_matrix[j, 6:] = [CoP_x[j], CoP_y[j], CoP_z[j]]
+                        right_matrix[j, 3:6] += [total_x_moment[j], total_y_moment[j], total_z_moment[j]]
+                        right_matrix[j, 6:] = [CoP_x, CoP_y, CoP_z]
+                        if j == 7820:
+                            print(world_moment)
+                            print(total_x_moment[j])
                         processed_frames_right.add(j)
  
     return left_matrix, right_matrix
 
 
-def calculate_overall_center_of_pressure(results):
+def calculate_overall_center_of_pressure(results, plate, side, interval, frame):
     global fp_data
-    user_defined_length = user_defined_region[1] * 10
- 
-    CoP_overall_x = np.zeros(user_defined_length)
-    CoP_overall_y = np.zeros(user_defined_length)
-    CoP_overall_z = np.zeros(user_defined_length)  # Optional
-    for frame in range(user_defined_length):
-        sum_fz = 0
-        sum_fy = 0
-        sum_fx_copx = 0
-        sum_fy_copy = 0
-        sum_fz_copx = 0
-        sum_fz_copy = 0
-        sum_fy_copz = 0
-        sum_fz_copz = 0 
-        for plate in results:
-            for side in ['left', 'right']:
-                intervals = results[plate][side]
-                for interval in intervals:
-                    if interval[0] * 10 <= frame < interval[1] * 10:
-                            fx = fp_data[plate]['fx'][frame - 10]
-                            fy = fp_data[plate]['fy'][frame - 10]
-                            fz = fp_data[plate]['fz'][frame - 10]
-                            copx = fp_data[plate]['copx'][frame - 10]
-                            copy = fp_data[plate]['copy'][frame - 10]
-                            copz = fp_data[plate]['copz'][frame - 10]
+    sum_fz = 0
+    sum_fy = 0
+    sum_fx_copx = 0
+    sum_fy_copy = 0
+    sum_fz_copx = 0
+    sum_fz_copy = 0
+    sum_fy_copz = 0
+    sum_fz_copz = 0 
+    if interval[0] * 10 - 10 <= frame < interval[1] * 10:
+        fx = fp_data[plate]['fx'][frame - 10]
+        fy = fp_data[plate]['fy'][frame - 10]
+        fz = fp_data[plate]['fz'][frame - 10]
+        copx = fp_data[plate]['copx'][frame - 10]
+        copy = fp_data[plate]['copy'][frame - 10]
+        copz = fp_data[plate]['copz'][frame - 10]
     
-                            sum_fz += fz
-                            sum_fy += fy
-                            sum_fz_copx += copx * fz
-                            sum_fz_copy += copy * fz
-                            sum_fy_copz += copz * fy
+        sum_fz += fz
+        sum_fy += fy
+        sum_fz_copx += copx * fz
+        sum_fz_copy += copy * fz
+        sum_fy_copz += copz * fy
  
-        if sum_fz != 0:
-            CoP_overall_x[frame] = sum_fz_copx / sum_fz
-            CoP_overall_y[frame] = sum_fz_copy / sum_fz
-        else:
-            CoP_overall_x[frame] = np.nan
-            CoP_overall_y[frame] = np.nan
+    if sum_fz != 0:
+        CoP_overall_x = sum_fz_copx / sum_fz
+        CoP_overall_y = sum_fz_copy / sum_fz
+    else:
+        CoP_overall_x = np.nan
+        CoP_overall_y = np.nan
  
-        if sum_fy != 0:
-            CoP_overall_z[frame] = sum_fy_copz / sum_fy
-        else:
-            CoP_overall_z[frame] = np.nan
- 
-    CoP_overall_x = np.nan_to_num(CoP_overall_x)
-    CoP_overall_y = np.nan_to_num(CoP_overall_y)
-    CoP_overall_z = np.nan_to_num(CoP_overall_z)
+    if sum_fy != 0:
+        CoP_overall_z = sum_fy_copz / sum_fy
+    else:
+        CoP_overall_z = np.nan
  
     return CoP_overall_x, CoP_overall_y, CoP_overall_z
 
@@ -479,7 +464,7 @@ def main():
     results = find_plate_matches(find_plate_data())
     left, right = find_force_matrix(results)
     # np.savetxt('right_foot_results.csv',  right, delimiter=",", header="Fx, Fy, Fz, Mx, My, Mz, CoPx, CoPy, CoPz")
-    print(right[6200], left[6800])
+    print(right[6200])
 
 if __name__ == "__main__":
     main()
