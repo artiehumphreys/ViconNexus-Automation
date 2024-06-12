@@ -394,23 +394,26 @@ def find_force_matrix(results):
                     # force_cols = -world_force 
                     # torque_cols = -adj_moment @ x270_matrix
                     # cop_cols = world_loc @ x270_matrix
-                    if j == 6200:
-                        print(force_on_plate, world_force)
 
                     total_y_force[j] += world_force[1]
                     total_x_moment[j] += rel_pos_on_plate[1] * world_force[2]
                     total_z_moment[j] += -(rel_pos_on_plate[1] * world_force[0] - rel_pos_on_plate[0] * world_force[1])
                     total_y_moment[j] += -rel_pos_on_plate[0] * world_force[2]
+
+                    if j == 6200:
+                        print("world force: " + str(world_force))
+                        print("world moment: " + str(world_moment))
+                        print("relative pos: " + str(rel_pos_on_plate))
+                        print("plate: ", plate)
+                        print("moment: " + str(total_x_moment[j]))
                     if side == 'left':
                         left_matrix[j, :3] += world_force
-                        left_matrix[j, 6:] += world_loc
+                        left_matrix[j, 3:6] = [total_x_moment[j], total_y_moment[j], total_z_moment[j]]
+                        left_matrix[j, 6:] += rel_pos_on_plate
                     else:
                         right_matrix[j, :3] += world_force
-                        right_matrix[j, 6:] += world_loc
-    right_matrix[:, 3] += total_x_moment
-    right_matrix[:, 4] += total_y_moment
-    right_matrix[:, 5] += total_z_moment
-    print(total_x_moment[6200], right_matrix[6200, 3])
+                        right_matrix[j, 3:6] = [total_x_moment[j], total_y_moment[j], total_z_moment[j]]
+                        right_matrix[j, 6:] += rel_pos_on_plate
  
     return left_matrix, right_matrix
 def main():
@@ -420,7 +423,7 @@ def main():
     results = find_plate_matches(find_plate_data())
     left, right = find_force_matrix(results)
     # np.savetxt('right_foot_results.csv',  right, delimiter=",", header="Fx, Fy, Fz, Mx, My, Mz, CoPx, CoPy, CoPz")
-    print(right[6200])
+    print(right[6200], left[6800])
 
 if __name__ == "__main__":
     main()
