@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 import os
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 from vicon import Vicon
 
@@ -29,22 +30,23 @@ left_foot_markers = (
 class Marker:
     def __init__(self, name: str, vicon: Vicon):
         self.marker = name
-        self.markers = left_foot_markers + right_foot_markers
-        self.z_coords = {marker: [] for marker in self.markers}
-        self.y_coords = {marker: [] for marker in self.markers}
-        self.x_coords = {marker: [] for marker in self.markers}
-        self.z_velo = {marker: [] for marker in self.markers}
-        self.z_accel = {marker: [] for marker in self.markers}
+        self.z_coords = []
+        self.y_coords = []
+        self.x_coords = []
+        self.z_velo = []
+        self.z_accel = []
 
-        for marker in self.markers:
-            trajectory = vicon.fetch_trajectory(marker)
-            for i in range(len(trajectory)):
-                print(trajectory[i])
-                self.z_coords[marker].extend(trajectory[i][2])
-                self.y_coords[marker].extend(trajectory[i][1])
-                self.x_coords[marker].extend(trajectory[i][0])
-                self.z_velo[marker].extend(np.gradient(self.z_coords[marker])) 
-                self.z_accel[marker].extend(np.diff(self.z_coords[marker], 2))
+        trajectory = vicon.fetch_trajectory(self.marker)
+        for pos in trajectory:
+            self.z_coords.append(pos[2])
+            self.y_coords.append(pos[1])
+            self.x_coords.append(pos[0])
+        if self.z_coords:
+            self.z_velo.append(np.gradient(self.z_coords)) 
+            self.z_accel.append(np.diff(self.z_coords, 2))
+        
+        self.z_velo = self.z_velo[0]
+        self.z_accel = self.z_accel[0]
 
     def find_foot_strike(self, lower_frame_bound: int = 0) -> list:
         foot_down_frames = []
@@ -55,9 +57,9 @@ class Marker:
             return marker_z_velo[i] < threshold and marker_z_velo[i-1] > marker_z_velo[i] < marker_z_velo[i+1]
         
         z_accel_peak = z_velo_trough = False
-        marker_z_accel = self.z_accel[self.marker]
-        marker_z_velo = self.z_velo[self.marker]
-        marker_z_pos = self.z_coords[self.marker]
+        marker_z_accel = self.z_accel
+        marker_z_velo = self.z_velo
+        marker_z_pos = self.z_coords
     
         for i in range(1, len(marker_z_accel) - 1):
             if is_z_accel_peak(i):
@@ -104,12 +106,11 @@ class Marker:
     def plot_markers(self, lower_bound: int, upper_bound: int):
         plt.figure(figsize=(10,6))
 
-        for marker in self.markers:
-            frames = np.arange(lower_bound, upper_bound)
-            plt.plot(frames, self.z_coords[marker], label = marker + ' z coord')
-            plt.plot(frames, self.z_velo[marker], label = marker + ' z velo')
-            frames = np.arange(lower_bound, upper_bound - 2)
-            plt.plot(frames, self.z_accel[marker], label = marker + ' z accel')
+        frames = np.arange(lower_bound, upper_bound)
+        plt.plot(frames, self.z_coords, label = self.marker + ' z coord')
+        plt.plot(frames, self.z_velo, label = self.marker + ' z velo')
+        frames = np.arange(lower_bound, upper_bound - 2)
+        plt.plot(frames, self.z_accel, label = self.marker + ' z accel')
 
         plt.xlabel('Frame')
         plt.title('Kinematics over time')
@@ -122,10 +123,12 @@ def main():
     lower, upper = vicon.get_region_of_interest()
     marker = Marker('RD2P', vicon)
     marker.plot_markers(lower, upper)
-    for marker in right_foot_markers:
-        lis = marker.find_foot_strike(lower)
-        print(lis)
-    # print(marker.find_frames_from_data(list1, list2, list3))
+    lis = []
+    for marker in right_foot_markers[:3]:
+        marker = Marker(marker, vicon)
+        lis.append(marker.find_foot_strike(lower))
+        
+    print(marker.find_frames_from_data(lis[0], lis[1], lis[2]))
 
 if __name__ == "__main__":
     main()
