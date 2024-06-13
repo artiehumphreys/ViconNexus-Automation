@@ -53,9 +53,10 @@ class Plate:
         for deviceID in deviceIDs:
             details = self.vicon.vicon.GetDeviceDetails(deviceID)
             if details[1] == 'ForcePlate':
-                self.wt = details[4].WorldT
-                plate_name = plate_configs.get(tuple(self.wt)) # type: ignore
+                wt = details[4].WorldT
+                plate_name = plate_configs.get(tuple(wt)) # type: ignore
                 if plate_name == self.name:
+                    self.wt = wt
                     self.name = plate_name
                     wr = details[4].WorldR
                     self.fx = self.vicon.vicon.GetDeviceChannel(deviceID, 1, 1)[0]
@@ -102,7 +103,6 @@ class Plate:
         return strike_intervals
 
     def find_plate_matches(self, strike_intervals):
-        print(strike_intervals)
         def is_intersecting(box1, box2):
             min_x1, max_x1, min_y1, max_y1 = box1
             min_x2, max_x2, min_y2, max_y2 = box2
@@ -124,8 +124,6 @@ class Plate:
         plate_bounds = [self.wt[0] - 300, self.wt[0] + 300, self.wt[1] - 300, self.wt[1] + 300] # type: ignore
         strike_events = {'right': self.vicon.vicon.GetEvents(self.vicon.subject, 'Right', 'Foot Strike')[0], 'left': self.vicon.vicon.GetEvents(self.vicon.subject, 'Left', 'Foot Strike')[0]}
         off_events = {'right': self.vicon.vicon.GetEvents(self.vicon.subject, 'Right', 'Foot Off')[0], 'left': self.vicon.vicon.GetEvents(self.vicon.subject, 'Left', 'Foot Off')[0]}
-
-        print(strike_events, off_events)
         for foot in strike_events:
             for i in range(len(off_events[foot])):
                 for j in range(strike_events[foot][i], off_events[foot][i] + 1):
@@ -134,8 +132,6 @@ class Plate:
                     # foot not in bounds of the plates
                     if (2712 < min_x and 300 > max_x and 903 < min_y and 0 > max_y):
                         continue
-                    if foot == "right" and j == 530:
-                        print(bbox, plate_bounds)
                     if is_intersecting(bbox, plate_bounds) and frame_in_strike_interval(j, strike_intervals):
                         results[foot].append(j)
         results = self.format_results(results)
