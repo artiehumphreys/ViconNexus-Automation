@@ -28,7 +28,7 @@ left_foot_markers = (
 )
 
 class Marker:
-    def __init__(self, name: str, vicon: Vicon):
+    def __init__(self, name: str):
         self.marker = name
         self.z_coords = []
         self.y_coords = []
@@ -36,7 +36,7 @@ class Marker:
         self.z_velo = []
         self.z_accel = []
         self.z_jerk = []
-        self.vicon = vicon
+        self.vicon = Vicon()
 
         trajectory = vicon.fetch_trajectory(self.marker)
         for pos in trajectory:
@@ -164,7 +164,7 @@ class Marker:
 def main():
     vicon = Vicon()
     lower, upper = vicon.get_region_of_interest()
-    marker = Marker('RD2P', vicon)
+    marker = Marker('RD2P')
     marker.plot_markers(lower, upper)
     lis = []
     for marker in right_foot_markers[:3]:

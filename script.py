@@ -57,36 +57,6 @@ def calculate_bounding_box(i):
     left_box = (min_x, max_x, min_y, max_y)
     return[right_box, left_box]
 
-
-def calculate_cycles(list1, list2, list3):
-    points = []
-    heap = []
-    final_points = []
-    if list1:
-        heapq.heappush(heap, (list1[0], 0, list1))
-    if list2:
-        heapq.heappush(heap, (list2[0], 0, list2))
-    if list3:
-        heapq.heappush(heap, (list3[0], 0, list3))
-
-    while heap:
-        value, idx, arr = heapq.heappop(heap)
-        points.append(value)
-        if idx + 1 < len(arr):
-            heapq.heappush(heap, (arr[idx + 1], idx + 1, arr))
-
-    diff = 0
-    in_bounds = False
-    for i in range(len(points)-1):
-        diff = abs(points[i] - points[i+1])
-        if diff <= 19 and not in_bounds:
-            final_points.append(points[i])
-            in_bounds = True
-        elif diff > 19:
-            in_bounds = False
-
-    return final_points
-
 fp_data = {}
 def find_plate_data():
     global fp

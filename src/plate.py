@@ -3,14 +3,34 @@ import sys
 import os
 from vicon import Vicon
 
-class Plate:
-    name = ''
-    fx = fy = fz = []
-    dx = dy = dz = []
+plate_configs = {
+    [2712.0,300.0,0.0] : 'Plate1',
+    [2712.0,903.0,0.0] : 'Plate2', 
+    [2109.0,300.0,0.0] : 'Plate3', 
+    [2109.0,903.0,0.0] : 'Plate4',
+    [1506.0,300.0,0.0] : 'Plate5',
+    [1506.0,903.0,0.0] : 'Plate6',
+    [903.0,300.0,0.0] : 'Plate7',
+    [903.0,903.0,0.0] : 'Plate8',
+    [300.0,300.0,0.0] : 'Plate9',
+}
 
-    def __init__(self, name, fx, fy, fz):
+class Plate:
+    def __init__ (self, name):
         self.name = name
         self.vicon = Vicon()
+        self.fx = fx
+        self.fy = fy
+        self.fz = fz
+        self.dx = []
+        self.dy = []
+        self.dz = []
+        self.copx = []
+        self.copy = []
+        self.copz = []
+        self.mx = []
+        self.my = []
+        self.mz = []
 
     def __str__(self):
         return self.name
@@ -29,52 +49,41 @@ class Plate:
         strikes = []
         deviceIDs = self.vicon.GetDeviceIDs()
         for deviceID in deviceIDs:
-                _, type, rate, output, force_plate, channel = vicon.GetDeviceDetails(deviceID)
-                if type == 'ForcePlate':
-                    wt = force_plate.WorldT
-                    wr = force_plate.WorldR
-                    fx = vicon.GetDeviceChannel(deviceID, 1, 1)[0]
-                    fy = vicon.GetDeviceChannel(deviceID, 1, 2)[0]
-                    fz = vicon.GetDeviceChannel(deviceID, 1, 3)[0]
-                    copx = vicon.GetDeviceChannel(deviceID, 3, 1)[0]
-                    copy = vicon.GetDeviceChannel(deviceID, 3, 2)[0]
-                    copz = vicon.GetDeviceChannel(deviceID, 3, 3)[0]
-                    mx = vicon.GetDeviceChannel(deviceID, 2, 1)[0]
-                    my = vicon.GetDeviceChannel(deviceID, 2, 2)[0]
-                    mz = vicon.GetDeviceChannel(deviceID, 2, 3)[0]
-                    name = find_plate_name(wt)
+            details = vicon.GetDeviceDetails(deviceID)
+            if details['type'] == 'ForcePlate':
+                wt = details['force_plate']['WorldT']
+                plate_name = plate_configs.get(tuple(wt))
+                if plate_name:
+                    self.name = plate_name
+                    wr = details['force_plate']['WorldR']
+                    self.fx = vicon.GetDeviceChannel(deviceID, 1, 1)[0]
+                    self.fy = vicon.GetDeviceChannel(deviceID, 1, 2)[0]
+                    self.fz = vicon.GetDeviceChannel(deviceID, 1, 3)[0]
+                    self.copx = vicon.GetDeviceChannel(deviceID, 3, 1)[0]
+                    self.copy = vicon.GetDeviceChannel(deviceID, 3, 2)[0]
+                    self.copz = vicon.GetDeviceChannel(deviceID, 3, 3)[0]
+                    self.mx = vicon.GetDeviceChannel(deviceID, 2, 1)[0]
+                    self.my = vicon.GetDeviceChannel(deviceID, 2, 2)[0]
+                    self.mz = vicon.GetDeviceChannel(deviceID, 2, 3)[0]
                     for x in range(len(copx)):
-                        a = copx[x]
-                        b = copy[x]
-                        copx[x] = wt[0] - b
-                        copy[x] = wt[1] + a
-                    if name:
-                        fp_data[name] = {
-                            'fx': fx,
-                            'fy': fy,
-                            'fz': fz,
-                            'copx': copx,
-                            'copy': copy,
-                            'copz': copz,
-                            'mx': mx,
-                            'my': my,
-                            'mz': mz,
-                            'wr': wr,
-                            'wt': wt
-                        }
-                    fp = Plate(name, fx, fy, fz)
-                    strike = find_plate_strikes(fp)
-                    if strike:
-                        strikes.append((strike, name))
+                        a = self.copx[x]
+                        b = self.copy[x]
+                        self.copx[x] = self.wt[0] - b
+                        self.copy[x] = self.wt[1] + a
+
+                strike = self.find_plate_strikes()
+                if strike:
+                    strikes.append((strike, name))
         return strikes
 
-    def find_plate_strikes(fp):
+    def find_plate_strikes(self):
         strike_intervals = []
         possible_strike = False
         fc = 0
         start_frame = end_frame = None
-        for i in range(user_defined_region[0] * 10, user_defined_region[1] * 10):
-            resultant =  math.sqrt(fp.fx[i] ** 2 + fp.fy[i] ** 2 + fp.fz[i] ** 2)
+        # 2000hz refresh for plates, 200hz for camera
+        for i in range(self.vicon.get_region_of_interest[0] * 10, self.vicon.get_region_of_interest[1] * 10):
+            resultant =  math.sqrt(self.fx[i] ** 2 + self.fy[i] ** 2 + self.fz[i] ** 2)
             if resultant > 15:
                 if not possible_strike:
                     possible_strike = True
@@ -110,3 +119,9 @@ class Plate:
         plt.legend()
         plt.grid(True)
         plt.show()
+
+def main():
+    return
+
+if __name__ == "__main__":
+    main()
