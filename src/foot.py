@@ -29,12 +29,10 @@ class Foot:
         self.x_coords = {marker: [] for marker in self.markers}
         self.vicon = Vicon()
 
-        lower, upper = self.vicon.get_region_of_interest()
-
         for marker in self.markers:
-            self.z_coords[marker].extend(self.vicon.vicon.GetTrajectoryAtFrame(self.vicon.subject, marker, frame)[2] for frame in range(lower, upper))
-            self.y_coords[marker].extend(self.vicon.vicon.GetTrajectoryAtFrame(self.vicon.subject, marker, frame)[1] for frame in range(lower, upper))
-            self.x_coords[marker].extend(self.vicon.vicon.GetTrajectoryAtFrame(self.vicon.subject, marker, frame)[0] for frame in range(lower, upper))
+            self.z_coords[marker] = self.vicon.fetch_trajectory(marker)[2]
+            self.y_coords[marker] = self.vicon.fetch_trajectory(marker)[1]
+            self.x_coords[marker] = self.vicon.fetch_trajectory(marker)[0]
 
     def calculate_bounding_box(self, i):
         if self.foot == 'left':

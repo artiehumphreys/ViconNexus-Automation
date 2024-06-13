@@ -16,7 +16,5 @@ class Vicon():
         return self.user_defined_region
     
     def fetch_trajectory(self, marker):
-        positions = []
-        for frame in range(self.user_defined_region[0], self.user_defined_region[1]):
-            positions.append(self.vicon.GetTrajectoryAtFrame(self.subject, marker, frame))
+        positions = self.vicon.GetTrajectory(self.subject, marker)
         return positions

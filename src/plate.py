@@ -33,6 +33,7 @@ class Plate:
         self.mx = []
         self.my = []
         self.mz = []
+        self.fetch_plate_data()
 
     def __str__(self):
         return self.name
@@ -47,8 +48,7 @@ class Plate:
                 case 'z':
                     self.dz = np.gradient(self.fz)
 
-    def find_plate_data(self):
-        strikes = []
+    def fetch_plate_data(self):
         deviceIDs = self.vicon.vicon.GetDeviceIDs()
         for deviceID in deviceIDs:
             details = self.vicon.vicon.GetDeviceDetails(deviceID)
@@ -58,7 +58,7 @@ class Plate:
                 if plate_name == self.name:
                     self.wt = wt
                     self.name = plate_name
-                    wr = details[4].WorldR
+                    self.wr = details[4].WorldR
                     self.fx = self.vicon.vicon.GetDeviceChannel(deviceID, 1, 1)[0]
                     self.fy = self.vicon.vicon.GetDeviceChannel(deviceID, 1, 2)[0]
                     self.fz = self.vicon.vicon.GetDeviceChannel(deviceID, 1, 3)[0]
@@ -73,17 +73,17 @@ class Plate:
                         b = self.copy[x]
                         self.copx[x] = self.wt[0] - b
                         self.copy[x] = self.wt[1] + a
-
                     strike = self.find_plate_strikes()
-        return strike
+                    return strike
 
     def find_plate_strikes(self):
+        lower, upper = self.vicon.get_region_of_interest()
         strike_intervals = []
         possible_strike = False
         fc = 0
         start_frame = end_frame = None
         # 2000hz refresh for plates, 200hz for camera
-        for i in range(self.vicon.get_region_of_interest()[0] * 10, self.vicon.get_region_of_interest()[1] * 10):
+        for i in range(lower * 10, upper * 10):
             resultant =  math.sqrt(self.fx[i] ** 2 + self.fy[i] ** 2 + self.fz[i] ** 2)
             if resultant > 15:
                 if not possible_strike:
@@ -99,7 +99,6 @@ class Plate:
                 end_frame = None
                 fc = 0
                 possible_strike = False
-
         return strike_intervals
 
     def find_plate_matches(self, strike_intervals):
@@ -187,10 +186,15 @@ class Plate:
         plt.grid(True)
         plt.show()
 
-def main():
-    p = Plate('Plate5')
-    intervals = p.find_plate_data()
-    print(p.find_plate_matches(intervals))
+def driver():
+    plates = ['Plate1', 'Plate2', 'Plate3', 'Plate4', 'Plate5', 'Plate6', 'Plate7', 'Plate8', 'Plate9']
+    results = {plate: {} for plate in plates}
+    for plate in plates:
+        print(plate)
+        p = Plate(plate)
+        intervals = p.fetch_plate_data()
+        results[plate] = p.find_plate_matches(intervals)
+    return results
 
 if __name__ == "__main__":
-    main()
+    driver()
