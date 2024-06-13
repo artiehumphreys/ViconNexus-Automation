@@ -1,8 +1,8 @@
 import numpy as np
-import sys
-import os
+import matplotlib.pyplot as plt
 import math
 from vicon import Vicon
+from foot import Foot
 
 plate_configs = {
     (2712.0,300.0,0.0) : 'Plate1',
@@ -38,7 +38,7 @@ class Plate:
         return self.name
 
     def calculate_gradient(self, dimension = 'x'):
-        if fx and fy and fz:
+        if self.fx and self.fy and self.fz:
             match dimension:
                 case 'x':
                     self.dx = np.gradient(self.fx)
@@ -54,9 +54,8 @@ class Plate:
             details = self.vicon.vicon.GetDeviceDetails(deviceID)
             if details[1] == 'ForcePlate':
                 self.wt = details[4].WorldT
-                plate_name = plate_configs.get(tuple(self.wt))
+                plate_name = plate_configs.get(tuple(self.wt)) # type: ignore
                 if plate_name == self.name:
-                    print(self.name)
                     self.name = plate_name
                     wr = details[4].WorldR
                     self.fx = self.vicon.vicon.GetDeviceChannel(deviceID, 1, 1)[0]
@@ -103,33 +102,75 @@ class Plate:
         return strike_intervals
 
     def find_plate_matches(self, strike_intervals):
-        results = {'left':[], 'right':[]}
-        plate_bounds = [self.wt[0] - 300, self.wt[0] + 300, self.wt[1] - 300, self.wt[1] + 300]
-        strike_events = {'right': self.vicon.vicon.GetEvents(subject, 'Right', 'Foot Strike')[0], 'left': self.vicon.vicon.GetEvents(subject, 'Left', 'Foot Strike')[0]}
-        off_events = {'right': self.vicon.vicon.GetEvents(subject, 'Right', 'Foot Off')[0], 'left': self.vicon.vicon.GetEvents(subject, 'Left', 'Foot Off')[0]}
+        print(strike_intervals)
+        def is_intersecting(box1, box2):
+            min_x1, max_x1, min_y1, max_y1 = box1
+            min_x2, max_x2, min_y2, max_y2 = box2
+            x_overlap = not(max_x1 < min_x2 or max_x2 < min_x1)
+            y_overlap = not(max_y1 < min_y2 or max_y2 < min_y1)
+            return x_overlap and y_overlap
+    
+        def frame_in_strike_interval(j, strike_intervals):
+            for intervals in strike_intervals:
+                start = intervals[0] // 10
+                end = intervals[1] // 10 
+                if (start <= j <= end):
+                    return True
+            return False
 
+        left_foot = Foot('left')
+        right_foot = Foot('right')
+        results = {'left':[], 'right':[]}
+        plate_bounds = [self.wt[0] - 300, self.wt[0] + 300, self.wt[1] - 300, self.wt[1] + 300] # type: ignore
+        strike_events = {'right': self.vicon.vicon.GetEvents(self.vicon.subject, 'Right', 'Foot Strike')[0], 'left': self.vicon.vicon.GetEvents(self.vicon.subject, 'Left', 'Foot Strike')[0]}
+        off_events = {'right': self.vicon.vicon.GetEvents(self.vicon.subject, 'Right', 'Foot Off')[0], 'left': self.vicon.vicon.GetEvents(self.vicon.subject, 'Left', 'Foot Off')[0]}
+
+        print(strike_events, off_events)
         for foot in strike_events:
             for i in range(len(off_events[foot])):
-                for j in range(strike_events[foot][i], off_events[foot][i]):
-                    bbox = calculate_bounding_box(j - self.vicon.get_region_of_interest[0])[0] if foot == 'right' else calculate_bounding_box(j - self.vicon.get_region_of_interest[0])[1]
+                for j in range(strike_events[foot][i], off_events[foot][i] + 1):
+                    bbox = right_foot.calculate_bounding_box(j - self.vicon.get_region_of_interest()[0]) if foot == 'right' else left_foot.calculate_bounding_box(j - self.vicon.get_region_of_interest()[0])
                     min_x, max_x, min_y, max_y = bbox
                     # foot not in bounds of the plates
                     if (2712 < min_x and 300 > max_x and 903 < min_y and 0 > max_y):
                         continue
-                    if self.name and is_intersecting(bbox, plate_bounds) and self.frame_in_strike_interval(j, strike_intervals, self.name):
-                        results[plate_name][foot].append(j)
-        results = format_results(results)
+                    if foot == "right" and j == 530:
+                        print(bbox, plate_bounds)
+                    if is_intersecting(bbox, plate_bounds) and frame_in_strike_interval(j, strike_intervals):
+                        results[foot].append(j)
+        results = self.format_results(results)
         return results
-
-    def frame_in_strike_interval(self, j, strike_intervals):
-        for intervals in strike_intervals:
-            for interval in intervals:
-                start = interval[0] // 10 
-                end = interval[1] // 10 
-                if (start <= j <= end):
-                    return True
-        return False
-
+    
+    def format_results(self, results):
+        left_intervals = []
+        right_intervals = []
+        left = results['left']
+        right = results['right']
+        if left:
+            start = left[0]
+            end = left[0]
+            for i in range (1, len(left)):
+                if left[i] == end + 1:
+                    end = left[i]
+                else:
+                    left_intervals.append((start, end))
+                    start = left[i]
+                    end = left[i]
+            left_intervals.append((start, end)) 
+            results['left'] = left_intervals
+        if right:
+            start = right[0]
+            end = right[0]
+            for i in range (1, len(right)):
+                if right[i] == end + 1:
+                    end = right[i]
+                else:
+                    right_intervals.append((start, end))
+                    start = right[i]
+                    end = right[i]
+            right_intervals.append((start, end)) 
+            results['right'] = right_intervals
+        return results
 
     def plot_forces(self):
         plt.figure(figsize=(10,6))
@@ -151,8 +192,9 @@ class Plate:
         plt.show()
 
 def main():
-    p = Plate('Plate1')
-    print(p.find_plate_data())
+    p = Plate('Plate5')
+    intervals = p.find_plate_data()
+    print(p.find_plate_matches(intervals))
 
 if __name__ == "__main__":
     main()

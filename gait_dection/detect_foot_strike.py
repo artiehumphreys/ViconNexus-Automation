@@ -38,7 +38,7 @@ class Marker:
         self.z_jerk = []
         self.vicon = Vicon()
 
-        trajectory = vicon.fetch_trajectory(self.marker)
+        trajectory = self.vicon.fetch_trajectory(self.marker)
         for pos in trajectory:
             self.z_coords.append(pos[2])
             self.y_coords.append(pos[1])
@@ -168,7 +168,7 @@ def main():
     marker.plot_markers(lower, upper)
     lis = []
     for marker in right_foot_markers[:3]:
-        marker = Marker(marker, vicon)
+        marker = Marker(marker)
         li = marker.find_foot_strike()
         lis.append(li)
         print(lis)
