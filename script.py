@@ -1,10 +1,6 @@
-from vicon import Vicon
-import os
 import numpy as np
 import matplotlib.pyplot as plt
-import heapq
 from plate import Plate
-import math
 import sys
 
 vicon = vicon()
@@ -57,75 +53,6 @@ def calculate_bounding_box(i):
     left_box = (min_x, max_x, min_y, max_y)
     return[right_box, left_box]
 
-fp_data = {}
-def find_plate_data():
-    global fp
-    strikes = []
-    deviceIDs = vicon.GetDeviceIDs()
-    for deviceID in deviceIDs:
-            _, type, rate, output, force_plate, channel = vicon.GetDeviceDetails(deviceID)
-            if type == 'ForcePlate':
-                wt = force_plate.WorldT
-                wr = force_plate.WorldR
-                fx = vicon.GetDeviceChannel(deviceID, 1, 1)[0]
-                fy = vicon.GetDeviceChannel(deviceID, 1, 2)[0]
-                fz = vicon.GetDeviceChannel(deviceID, 1, 3)[0]
-                copx = vicon.GetDeviceChannel(deviceID, 3, 1)[0]
-                copy = vicon.GetDeviceChannel(deviceID, 3, 2)[0]
-                copz = vicon.GetDeviceChannel(deviceID, 3, 3)[0]
-                mx = vicon.GetDeviceChannel(deviceID, 2, 1)[0]
-                my = vicon.GetDeviceChannel(deviceID, 2, 2)[0]
-                mz = vicon.GetDeviceChannel(deviceID, 2, 3)[0]
-                name = find_plate_name(wt)
-                for x in range(len(copx)):
-                    a = copx[x]
-                    b = copy[x]
-                    copx[x] = wt[0] - b
-                    copy[x] = wt[1] + a
-                if name:
-                    fp_data[name] = {
-                        'fx': fx,
-                        'fy': fy,
-                        'fz': fz,
-                        'copx': copx,
-                        'copy': copy,
-                        'copz': copz,
-                        'mx': mx,
-                        'my': my,
-                        'mz': mz,
-                        'wr': wr,
-                        'wt': wt
-                    }
-                fp = Plate(name, fx, fy, fz)
-                strike = find_plate_strikes(fp)
-                if strike:
-                    strikes.append((strike, name))
-    return strikes
-
-def find_plate_strikes(fp):
-    strike_intervals = []
-    possible_strike = False
-    fc = 0
-    start_frame = end_frame = None
-    for i in range(user_defined_region[0] * 10, user_defined_region[1] * 10):
-        resultant =  math.sqrt(fp.fx[i] ** 2 + fp.fy[i] ** 2 + fp.fz[i] ** 2)
-        if resultant > 15:
-            if not possible_strike:
-                possible_strike = True
-                start_frame = i
-            elif fc > 15:
-                end_frame = i
-            fc += 1
-        else:
-            if start_frame and end_frame:
-                strike_intervals.append((start_frame, end_frame))
-            start_frame = None
-            end_frame = None
-            fc = 0
-            possible_strike = False
-
-    return strike_intervals
-
 plate_configs = {
     'Plate1' : [2712.0,300.0,0.0],
     'Plate2' : [2712.0,903.0,0.0], 
@@ -137,27 +64,6 @@ plate_configs = {
     'Plate8' : [903.0,903.0,0.0],
     'Plate9': [300.0,300.0,0.0],
 }
-
-def find_plate_matches(strike_intervals):
-    results = {plate:{'left':[], 'right':[]} for plate in plate_configs.keys()}
-    plate_bounds = [(coords[0] - 300, coords[0] + 300, coords[1] - 300, coords[1] + 300) for coords in plate_configs.values()]
-    strike_events = {'right': vicon.GetEvents(subject, 'Right', 'Foot Strike')[0], 'left': vicon.GetEvents(subject, 'Left', 'Foot Strike')[0]}
-    off_events = {'right': vicon.GetEvents(subject, 'Right', 'Foot Off')[0], 'left': vicon.GetEvents(subject, 'Left', 'Foot Off')[0]}
-
-    for foot in strike_events:
-        for i in range(len(off_events[foot])):
-            for j in range(strike_events[foot][i], off_events[foot][i]):
-                bbox = calculate_bounding_box(j - user_defined_region[0])[0] if foot == 'right' else calculate_bounding_box(j - user_defined_region[0])[1]
-                min_x, max_x, min_y, max_y = bbox
-                # foot not in bounds of the plates
-                if (2712 < min_x and 300 > max_x and 903 < min_y and 0 > max_y):
-                    continue
-                for plate in plate_bounds:
-                    plate_name = find_plate_key(plate[0], plate[2])
-                    if plate_name and is_intersecting(bbox, plate) and frame_in_strike_interval(j, strike_intervals, plate_name):
-                        results[plate_name][foot].append(j)
-    results = format_results(results)
-    return results
 
 def format_results(results):
     for plate in results:
@@ -212,31 +118,6 @@ def find_plate_key(min_x, min_y):
         if value[0] - 300 <= min_x <= value[0] + 300 and value[1] - 300 <= min_y <= value[1] + 300:
             return key
     return None
-
-def find_plate_name(wt):
-    name = None
-    if wt == [2712.0,300.0,0.0]:
-        name = 'Plate1'
-    elif wt == [2712.0,903.0,0.0]:
-        name = 'Plate2'
-    elif wt == [2109.0,300.0,0.0]:
-       name = 'Plate3'
-    elif wt == [2109.0,903.0,0.0]:
-        name = 'Plate4'
-    elif wt == [1506.0,300.0,0.0]:
-        name = 'Plate5'  
-    elif wt == [1506.0,903.0,0.0]:
-        name = 'Plate6'
-    elif wt == [903.0,300.0,0.0]:
-        name = 'Plate7'
-    elif wt == [903.0,903.0,0.0]:
-        name = 'Plate8'
-    elif wt == [300.0,300.0,0.0]:
-        name = 'Plate9'
-    if name:
-        return name
-    else:
-        raise Exception("Not a valid force plate")
 
 def find_force_matrix(results):
     global fp_data

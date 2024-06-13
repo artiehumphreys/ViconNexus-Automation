@@ -102,6 +102,35 @@ class Plate:
 
         return strike_intervals
 
+    def find_plate_matches(self, strike_intervals):
+        results = {'left':[], 'right':[]}
+        plate_bounds = [self.wt[0] - 300, self.wt[0] + 300, self.wt[1] - 300, self.wt[1] + 300]
+        strike_events = {'right': self.vicon.vicon.GetEvents(subject, 'Right', 'Foot Strike')[0], 'left': self.vicon.vicon.GetEvents(subject, 'Left', 'Foot Strike')[0]}
+        off_events = {'right': self.vicon.vicon.GetEvents(subject, 'Right', 'Foot Off')[0], 'left': self.vicon.vicon.GetEvents(subject, 'Left', 'Foot Off')[0]}
+
+        for foot in strike_events:
+            for i in range(len(off_events[foot])):
+                for j in range(strike_events[foot][i], off_events[foot][i]):
+                    bbox = calculate_bounding_box(j - self.vicon.get_region_of_interest[0])[0] if foot == 'right' else calculate_bounding_box(j - self.vicon.get_region_of_interest[0])[1]
+                    min_x, max_x, min_y, max_y = bbox
+                    # foot not in bounds of the plates
+                    if (2712 < min_x and 300 > max_x and 903 < min_y and 0 > max_y):
+                        continue
+                    if self.name and is_intersecting(bbox, plate_bounds) and self.frame_in_strike_interval(j, strike_intervals, self.name):
+                        results[plate_name][foot].append(j)
+        results = format_results(results)
+        return results
+
+    def frame_in_strike_interval(self, j, strike_intervals):
+        for intervals in strike_intervals:
+            for interval in intervals:
+                start = interval[0] // 10 
+                end = interval[1] // 10 
+                if (start <= j <= end):
+                    return True
+        return False
+
+
     def plot_forces(self):
         plt.figure(figsize=(10,6))
         frames = np.arange(0, len(self.fx)) 
