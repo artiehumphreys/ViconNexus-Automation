@@ -19,4 +19,5 @@ class Vicon():
         positions = []
         for frame in range(self.user_defined_region[0], self.user_defined_region[1]):
             positions.append(self.vicon.GetTrajectoryAtFrame(self.subject, marker, frame))
+        print(positions)
         return positions

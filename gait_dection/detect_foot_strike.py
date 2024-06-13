@@ -38,12 +38,13 @@ class Marker:
 
         for marker in self.markers:
             trajectory = vicon.fetch_trajectory(marker)
-            print(trajectory[2])
-            self.z_coords[marker].extend(trajectory[2])
-            self.y_coords[marker].extend(trajectory[1])
-            self.x_coords[marker].extend(trajectory[0])
-            self.z_velo[marker].extend(np.gradient(self.z_coords[marker])) 
-            self.z_accel[marker].extend(np.diff(self.z_coords[marker], 2))
+            for i in range(len(trajectory)):
+                print(trajectory[i])
+                self.z_coords[marker].extend(trajectory[i][2])
+                self.y_coords[marker].extend(trajectory[i][1])
+                self.x_coords[marker].extend(trajectory[i][0])
+                self.z_velo[marker].extend(np.gradient(self.z_coords[marker])) 
+                self.z_accel[marker].extend(np.diff(self.z_coords[marker], 2))
 
     def find_foot_strike(self, lower_frame_bound: int = 0) -> list:
         foot_down_frames = []
