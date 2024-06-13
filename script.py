@@ -1,4 +1,4 @@
-from viconnexusapi import ViconNexus
+from vicon import Vicon
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -7,21 +7,7 @@ from plate import Plate
 import math
 import sys
 
-
-vicon = ViconNexus.ViconNexus()
-player_file = "Play-07"
-
-    # for file in os.path(f"C:/Users/ahumphreys/EXOS_Processing/{player_file}"):
-    #     vicon.OpenTrial(file, 30)
-
-file = fr"C:\Users\ahumphreys\EXOS_Processing\{player_file}\Cleat02\{player_file.replace('-', '')}_Cleat02_Trial05"
-vicon.OpenTrial(file, 30)
-
-subject = vicon.GetSubjectNames()[0]
-
-user_defined_region = vicon.GetTrialRegionOfInterest()
-
-foot_contact_markers = []
+vicon = vicon()
 
 right_foot_markers = (
     'RD2P',
@@ -70,68 +56,6 @@ def calculate_bounding_box(i):
     max_y = max(y_coords[marker][i] for marker in left_foot_markers)
     left_box = (min_x, max_x, min_y, max_y)
     return[right_box, left_box]
-
-
-def find_cycles(marker: str = 'RD2P'):
-    foot_down_frames = []
-    def is_z_accel_peak(i, threshold: float = 4):
-        return marker_z_accel[i] > threshold and marker_z_accel[i-1] < marker_z_accel[i] > marker_z_accel[i+1]
- 
-    def is_z_velo_trough(i, threshold: float = -4):
-        return marker_z_velo[i] < threshold and marker_z_velo[i-1] > marker_z_velo[i] < marker_z_velo[i+1]
-    
-    z_accel_peak = z_velo_trough = False
-    marker_z_accel = z_accel[marker]
-    marker_z_velo = z_velo[marker]
-    marker_z_pos = z_coords[marker]
- 
-    for i in range(1, len(marker_z_accel) - 1):
-        if is_z_accel_peak(i):
-            z_accel_peak = True    
-
-        if is_z_velo_trough(i):
-            z_velo_trough = True
-
-        if z_accel_peak and z_velo_trough and marker_z_accel[i-1] > marker_z_velo[i-1] and marker_z_accel[i] < marker_z_velo[i] and marker_z_pos[i] < 120:
-            foot_down_frames.append(i + user_defined_region[0])
-            z_accel_peak = z_velo_trough = False
-
-    return foot_down_frames
-
-def plot_markers(markers):
-    plt.figure(figsize=(10,6))
-
-    for marker in markers:
-        frames = np.arange(user_defined_region[0], user_defined_region[1])
-        plt.plot(frames, z_coords[marker], label = marker + ' z coord')
-        plt.plot(frames, z_velo[marker], label = marker + ' z velo')
-        frames = np.arange(user_defined_region[0], user_defined_region[1] - 2)
-        plt.plot(frames, z_accel[marker], label = marker + ' z accel')
-
-    plt.xlabel('Frame')
-    plt.title('Kinematics over time')
-    plt.legend()
-    plt.grid(True)
-    plt.show()
-
-def plot_forces(fp):
-    plt.figure(figsize=(10,6))
-    frames = np.arange(0, len(fp.fx)) 
-    fp.calculate_gradient('x')
-    fp.calculate_gradient('y')
-    fp.calculate_gradient('z')
-    plt.plot(frames, fp.fx, label = 'x force') 
-    plt.plot(frames, fp.fy, label = 'y force') 
-    plt.plot(frames, fp.fz, label = 'z force') 
-    plt.plot(frames, fp.dx, label = 'dx') 
-    plt.plot(frames, fp.dy, label = 'dy') 
-    plt.plot(frames, fp.dz, label = 'dz') 
-
-    plt.xlabel('Frame')
-    plt.title('Force over time')
-    plt.legend()
-    plt.grid(True)
-    plt.show()
 
 
 def calculate_cycles(list1, list2, list3):
@@ -215,7 +139,7 @@ def find_plate_strikes(fp):
     start_frame = end_frame = None
     for i in range(user_defined_region[0] * 10, user_defined_region[1] * 10):
         resultant =  math.sqrt(fp.fx[i] ** 2 + fp.fy[i] ** 2 + fp.fz[i] ** 2)
-        if resultant > 20:
+        if resultant > 15:
             if not possible_strike:
                 possible_strike = True
                 start_frame = i
@@ -459,8 +383,6 @@ def calculate_overall_center_of_pressure(results, plate, side, interval, frame):
 
 def main():
     np.set_printoptions(threshold=sys.maxsize)
-    
-    # print(calculate_cycles(find_cycles(right_foot_markers[0]), find_cycles(right_foot_markers[1]), find_cycles(right_foot_markers[2])))
     results = find_plate_matches(find_plate_data())
     left, right = find_force_matrix(results)
     # np.savetxt('right_foot_results.csv',  right, delimiter=",", header="Fx, Fy, Fz, Mx, My, Mz, CoPx, CoPy, CoPz")
