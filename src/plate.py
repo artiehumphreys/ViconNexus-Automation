@@ -18,9 +18,9 @@ plate_configs = {
 }
 
 class Plate:
-    def __init__ (self, name):
+    def __init__ (self, name, vicon):
         self.name = name
-        self.vicon = Vicon()
+        self.vicon = vicon
         self.wt = ()
         self.fx = []
         self.fy = []
@@ -114,7 +114,7 @@ class Plate:
         def frame_in_strike_interval(j):
             for intervals in strike_intervals:
                 start = intervals[0] // 10
-                end = intervals[1] // 10 
+                end = intervals[1] // 10
                 if (start <= j <= end):
                     return True
             return False
@@ -187,13 +187,17 @@ class Plate:
         plt.show()
 
 def driver():
+    vicon = Vicon()
     plates = ['Plate1', 'Plate2', 'Plate3', 'Plate4', 'Plate5', 'Plate6', 'Plate7', 'Plate8', 'Plate9']
+    plate_objs = []
     results = {plate: {} for plate in plates}
     for plate in plates:
-        p = Plate(plate)
+        print(plate)
+        p = Plate(plate, vicon)
+        plate_objs.append(p)
         intervals = p.fetch_plate_data()
         results[plate] = p.find_plate_matches(intervals)
-    return results
+    return results, plate_objs
 
 if __name__ == "__main__":
     driver()

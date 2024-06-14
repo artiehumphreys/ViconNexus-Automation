@@ -1,25 +1,27 @@
 import os
 import sys
+import icecream as ic
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 from vicon import Vicon
 from plate import driver, Plate
 import numpy as np
 
-def find_force_matrix(results):
+def find_force_matrix(results, plate_objs):
     print(results)
     vicon = Vicon()
     _, upper_bound = vicon.get_region_of_interest()
     a = 3 * np.pi / 2
 
-    x270_matrix = [[1, 0, 0],  [0, np.cos(a), -np.sin(a)], [0, np.sin(a), np.cos(a)]]
+    x270_matrix = [[1, 0, 0],  [0, np.cos(a), np.sin(a)], [0, -np.sin(a), np.cos(a)]]
     left_matrix = np.zeros((upper_bound * 10, 9), dtype='float')
     right_matrix = np.zeros((upper_bound * 10, 9), dtype='float')
     total_y_force = 0
     processed_frames_right = set()
     processed_frames_left = set()
-    for plate in results:
-        fp = Plate(plate)
+    for plate_obj in plate_objs:
+        fp = plate_obj
+        plate = fp.name
         total_x_moment = np.zeros(upper_bound * 10)
         total_z_moment = np.zeros(upper_bound * 10)
         total_y_moment = np.zeros(upper_bound * 10)
@@ -54,8 +56,8 @@ def find_force_matrix(results):
                     # Only for OpenSim:
                     adj_moment = np.zeros(3)
                     adj_moment[2] = world_moment[2] + world_force[0] * world_loc[1] - world_force[1] * world_loc[0]
-                    force_cols = -world_force 
-                    torque_cols = -adj_moment @ x270_matrix
+                    force_cols = -world_force @ x270_matrix  # type: ignore
+                    torque_cols = -adj_moment/1000 @ x270_matrix
                     cop_cols = world_loc @ x270_matrix
 
                     total_y_force += world_force[1]
@@ -81,6 +83,8 @@ def find_force_matrix(results):
                             right_matrix[j, 3:6] += [total_x_moment[j], total_y_moment[j], total_z_moment[j]]
                         right_matrix[j, 6:] = [CoP_x, CoP_y, CoP_z]
                         processed_frames_right.add(j)
+                    if j == 7500:
+                        ic.ic(force_cols, torque_cols, cop_cols, left_matrix[j])
     return left_matrix, right_matrix
 
 
@@ -119,8 +123,8 @@ def calculate_overall_center_of_pressure(fp, interval, frame):
 
 def main():
     np.set_printoptions(threshold=sys.maxsize)
-    results = driver()
-    fm = find_force_matrix(results)
+    results, plate_objs = driver()
+    fm = find_force_matrix(results, plate_objs)
     f = open('res.csv', 'w')
     f.write(str(fm[0]))
 
