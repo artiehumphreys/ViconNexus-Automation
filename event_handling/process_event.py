@@ -79,7 +79,7 @@ def find_force_matrix(results: list, plate_objs: list[Plate]):
 
                     force_cols = -world_force @ x270_matrix  # type: ignore
                     torque_cols = -adj_moment / 1000 @ x270_matrix
-                    cop_cols = np.array([cop_x / 1000, 0, 0])
+                    cop_cols = np.array([cop_x / 1000, 0, -cop_y / 1000])
 
                     if side == "left":
                         left_matrix[j, :3] += world_force
