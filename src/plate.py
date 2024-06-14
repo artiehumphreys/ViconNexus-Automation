@@ -123,7 +123,6 @@ class Plate:
         right_foot = Foot('right')
         results = {'left':[], 'right':[]}
         plate_bounds = [self.wt[0] - 300, self.wt[0] + 300, self.wt[1] - 300, self.wt[1] + 300] # type: ignore
-        ic.ic(self.vicon.strike_events, self.vicon.off_events)
         for foot in self.vicon.strike_events: # type: ignore
             for i in range(len(self.vicon.off_events[foot])): # type: ignore
                 for j in range(self.vicon.strike_events[foot][i], (self.vicon.off_events[foot][i] + 1)): # type: ignore
