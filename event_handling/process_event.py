@@ -2,10 +2,10 @@ import sys
 import os
 import icecream as ic
 import numpy as np
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
+# pylint: disable=wrong-import-position
 from plate import driver, Plate
 from vicon import Vicon
-
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
 
 
 # pylint: disable=too-many-locals
@@ -64,9 +64,6 @@ def find_force_matrix(results: list, plate_objs: list[Plate]):
                         + world_force[0] * world_loc[1]
                         - world_force[1] * world_loc[0]
                     )
-                    force_cols = -world_force @ x270_matrix  # type: ignore
-                    torque_cols = -adj_moment / 1000 @ x270_matrix
-                    cop_cols = world_loc @ x270_matrix
 
                     total_y_force += world_force[1]
                     total_x_moment[j] += rel_pos_on_plate[1] * world_force[2]
@@ -79,6 +76,10 @@ def find_force_matrix(results: list, plate_objs: list[Plate]):
                     cop_x, cop_y, cop_z = calculate_overall_center_of_pressure(
                         fp, interval, j
                     )
+
+                    force_cols = -world_force @ x270_matrix  # type: ignore
+                    torque_cols = -adj_moment / 1000 @ x270_matrix
+                    cop_cols = np.array([cop_x / 1000, 0, 0])
 
                     if side == "left":
                         left_matrix[j, :3] += world_force
@@ -105,7 +106,7 @@ def find_force_matrix(results: list, plate_objs: list[Plate]):
                         right_matrix[j, 6:] = [cop_x, cop_y, cop_z]
                         processed_frames_right.add(j)
                     if j == 7500:
-                        ic.ic(force_cols, torque_cols, cop_cols, left_matrix[j])
+                        ic.ic(force_cols, cop_cols, torque_cols, my, left_matrix[j])
     return left_matrix, right_matrix
 
 
