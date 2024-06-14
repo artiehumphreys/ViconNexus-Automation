@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import math
 from vicon import Vicon
 from foot import Foot
+import icecream as ic
 
 plate_configs = {
     (2712.0,300.0,0.0) : 'Plate1',
@@ -102,6 +103,7 @@ class Plate:
         return strike_intervals
 
     def find_plate_matches(self, strike_intervals):
+        lower, _ = self.vicon.get_region_of_interest()
         def is_intersecting(box1, box2):
             min_x1, max_x1, min_y1, max_y1 = box1
             min_x2, max_x2, min_y2, max_y2 = box2
@@ -109,7 +111,7 @@ class Plate:
             y_overlap = not(max_y1 < min_y2 or max_y2 < min_y1)
             return x_overlap and y_overlap
     
-        def frame_in_strike_interval(j, strike_intervals):
+        def frame_in_strike_interval(j):
             for intervals in strike_intervals:
                 start = intervals[0] // 10
                 end = intervals[1] // 10 
@@ -121,17 +123,16 @@ class Plate:
         right_foot = Foot('right')
         results = {'left':[], 'right':[]}
         plate_bounds = [self.wt[0] - 300, self.wt[0] + 300, self.wt[1] - 300, self.wt[1] + 300] # type: ignore
-        strike_events = {'right': self.vicon.vicon.GetEvents(self.vicon.subject, 'Right', 'Foot Strike')[0], 'left': self.vicon.vicon.GetEvents(self.vicon.subject, 'Left', 'Foot Strike')[0]}
-        off_events = {'right': self.vicon.vicon.GetEvents(self.vicon.subject, 'Right', 'Foot Off')[0], 'left': self.vicon.vicon.GetEvents(self.vicon.subject, 'Left', 'Foot Off')[0]}
-        for foot in strike_events:
-            for i in range(len(off_events[foot])):
-                for j in range(strike_events[foot][i], off_events[foot][i] + 1):
-                    bbox = right_foot.calculate_bounding_box(j - self.vicon.get_region_of_interest()[0]) if foot == 'right' else left_foot.calculate_bounding_box(j - self.vicon.get_region_of_interest()[0])
+        ic.ic(self.vicon.strike_events, self.vicon.off_events)
+        for foot in self.vicon.strike_events: # type: ignore
+            for i in range(len(self.vicon.off_events[foot])): # type: ignore
+                for j in range(self.vicon.strike_events[foot][i], (self.vicon.off_events[foot][i] + 1)): # type: ignore
+                    bbox = right_foot.calculate_bounding_box(j) if foot == 'right' else left_foot.calculate_bounding_box(j)
                     min_x, max_x, min_y, max_y = bbox
                     # foot not in bounds of the plates
                     if (2712 < min_x and 300 > max_x and 903 < min_y and 0 > max_y):
                         continue
-                    if is_intersecting(bbox, plate_bounds) and frame_in_strike_interval(j, strike_intervals):
+                    if is_intersecting(bbox, plate_bounds) and frame_in_strike_interval(j):
                         results[foot].append(j)
         results = self.format_results(results)
         return results
@@ -190,7 +191,6 @@ def driver():
     plates = ['Plate1', 'Plate2', 'Plate3', 'Plate4', 'Plate5', 'Plate6', 'Plate7', 'Plate8', 'Plate9']
     results = {plate: {} for plate in plates}
     for plate in plates:
-        print(plate)
         p = Plate(plate)
         intervals = p.fetch_plate_data()
         results[plate] = p.find_plate_matches(intervals)

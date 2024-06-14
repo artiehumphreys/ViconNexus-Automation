@@ -1,4 +1,5 @@
 from vicon import Vicon
+import icecream as ic
 
 right_foot_markers = (
     'RD2P',

@@ -7,6 +7,7 @@ from plate import driver, Plate
 import numpy as np
 
 def find_force_matrix(results):
+    print(results)
     vicon = Vicon()
     _, upper_bound = vicon.get_region_of_interest()
     a = 3 * np.pi / 2
@@ -51,11 +52,11 @@ def find_force_matrix(results):
                     world_loc = rotW @ rel_pos_on_plate
  
                     # Only for OpenSim:
-                    # adj_moment = np.zeros(3)
-                    # adj_moment[2] = world_moment[2] + world_force[0] * world_loc[1] - world_force[1] * world_loc[0]
-                    # force_cols = -world_force 
-                    # torque_cols = -adj_moment @ x270_matrix
-                    # cop_cols = world_loc @ x270_matrix
+                    adj_moment = np.zeros(3)
+                    adj_moment[2] = world_moment[2] + world_force[0] * world_loc[1] - world_force[1] * world_loc[0]
+                    force_cols = -world_force 
+                    torque_cols = -adj_moment @ x270_matrix
+                    cop_cols = world_loc @ x270_matrix
 
                     total_y_force += world_force[1]
                     total_x_moment[j] += rel_pos_on_plate[1] * world_force[2]
@@ -80,7 +81,6 @@ def find_force_matrix(results):
                             right_matrix[j, 3:6] += [total_x_moment[j], total_y_moment[j], total_z_moment[j]]
                         right_matrix[j, 6:] = [CoP_x, CoP_y, CoP_z]
                         processed_frames_right.add(j)
- 
     return left_matrix, right_matrix
 
 
@@ -120,7 +120,9 @@ def calculate_overall_center_of_pressure(fp, interval, frame):
 def main():
     np.set_printoptions(threshold=sys.maxsize)
     results = driver()
-    print(find_force_matrix(results)[0][5280])
+    fm = find_force_matrix(results)
+    f = open('res.csv', 'w')
+    f.write(str(fm[0]))
 
 if __name__ == "__main__":
     main()
