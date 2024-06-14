@@ -1,5 +1,4 @@
 from vicon import Vicon
-import icecream as ic
 
 right_foot_markers = (
     'RD2P',
@@ -36,6 +35,7 @@ class Foot:
             self.x_coords[marker] = self.vicon.fetch_trajectory(marker)[0]
 
     def calculate_bounding_box(self, i):
+        """Calculate a bounding box for the foot at a given frame using marker data"""
         if self.foot == 'left':
             min_x = min(self.x_coords[marker][i] for marker in left_foot_markers)
             max_x = max(self.x_coords[marker][i] for marker in left_foot_markers)
