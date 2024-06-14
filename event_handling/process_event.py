@@ -20,9 +20,6 @@ def find_force_matrix(results: list, plate_objs: list[Plate]):
     x270_matrix = [[1, 0, 0], [0, np.cos(a), np.sin(a)], [0, -np.sin(a), np.cos(a)]]
     left_matrix = np.zeros((upper_bound * 10, 9), dtype="float")
     right_matrix = np.zeros((upper_bound * 10, 9), dtype="float")
-    total_y_force = 0
-    processed_frames_right = set()
-    processed_frames_left = set()
     for plate_obj in plate_objs:
         fp = plate_obj
         plate = fp.name
@@ -57,15 +54,6 @@ def find_force_matrix(results: list, plate_objs: list[Plate]):
                     world_moment = rotw @ moment_on_plate
                     world_loc = rotw @ rel_pos_on_plate
 
-                    # Only for OpenSim:
-                    adj_moment = np.zeros(3)
-                    adj_moment[2] = (
-                        world_moment[2]
-                        + world_force[0] * world_loc[1]
-                        - world_force[1] * world_loc[0]
-                    )
-
-                    total_y_force += world_force[1]
                     total_x_moment[j] += rel_pos_on_plate[1] * world_force[2]
                     total_z_moment[j] = -(
                         rel_pos_on_plate[1] * world_force[0]
@@ -73,45 +61,36 @@ def find_force_matrix(results: list, plate_objs: list[Plate]):
                     )
                     total_y_moment[j] += -rel_pos_on_plate[0] * world_force[2]
 
-                    cop_x, cop_y, cop_z = calculate_overall_center_of_pressure(
+                    cop_x, cop_y = calculate_overall_center_of_pressure(
                         fp, interval, j
                     )
 
+                    # Only for OpenSim:
+                    adj_moment = np.zeros(3)
+                    adj_moment[2] = (
+                        world_moment[2]
+                        + world_force[0] * world_loc[1]
+                        - world_force[1] * world_loc[0]
+                    ) /1000
                     force_cols = -world_force @ x270_matrix  # type: ignore
-                    torque_cols = -adj_moment / 1000 @ x270_matrix
-                    cop_cols = np.array([cop_x / 1000, 0, -cop_y / 1000])
+                    torque_cols = -adj_moment @ x270_matrix
+                    cop_cols = np.array([cop_x / 1000, cop_y / 1000, 0]) @ x270_matrix
 
                     if side == "left":
-                        left_matrix[j, :3] += world_force
-                        if j in processed_frames_left:
-                            left_matrix[j, 3:6] += world_moment
-                        else:
-                            left_matrix[j, 3:6] += [
-                                total_x_moment[j],
-                                total_y_moment[j],
-                                total_z_moment[j],
-                            ]
-                        left_matrix[j, 6:] = [cop_x, cop_y, cop_z]
-                        processed_frames_left.add(j)
+                        left_matrix[j, :3] += force_cols
+                        left_matrix[j, 3:6] += cop_cols
+                        left_matrix[j, 6:] += torque_cols
                     else:
-                        right_matrix[j, :3] += world_force
-                        if j in processed_frames_right:
-                            right_matrix[j, 3:6] += world_moment
-                        else:
-                            right_matrix[j, 3:6] += [
-                                total_x_moment[j],
-                                total_y_moment[j],
-                                total_z_moment[j],
-                            ]
-                        right_matrix[j, 6:] = [cop_x, cop_y, cop_z]
-                        processed_frames_right.add(j)
-                    if j == 7500:
-                        ic.ic(force_cols, cop_cols, torque_cols, my, left_matrix[j])
+                        right_matrix[j, :3] += force_cols
+                        right_matrix[j, 3:6] += cop_cols
+                        right_matrix[j, 6:] = torque_cols
+                    if j == 5787:
+                        ic.ic(force_cols, cop_cols, torque_cols, [total_x_moment[j], total_y_moment[j], total_z_moment[j]])
     return left_matrix, right_matrix
 
 
 def calculate_overall_center_of_pressure(fp, interval, frame):
-    """Calculate center of pressure at a given frame"""
+    """Calculate center of pressure at a given frame for a plate"""
     sum_fz = 0
     sum_fy = 0
     sum_fz_copx = 0
@@ -137,18 +116,14 @@ def calculate_overall_center_of_pressure(fp, interval, frame):
         cop_overall_x = np.nan
         cop_overall_y = np.nan
 
-    if sum_fy != 0:
-        cop_overall_z = sum_fy_copz / sum_fy
-    else:
-        cop_overall_z = np.nan
+    return cop_overall_x, cop_overall_y
 
-    return cop_overall_x, cop_overall_y, cop_overall_z
-
-
+# pylint: disable=missing-function-docstring
 def main():
     np.set_printoptions(threshold=sys.maxsize)
     results, plate_objs = driver()
-    find_force_matrix(results, plate_objs)  # type: ignore
+    left, _ = find_force_matrix(results, plate_objs)  # type: ignore
+    np.savetxt("res.csv", left, delimiter=",") # type: ignore
 
 
 if __name__ == "__main__":
