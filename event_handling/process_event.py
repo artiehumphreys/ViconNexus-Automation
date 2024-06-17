@@ -1,11 +1,10 @@
-from re import L
 import sys
 import os
 import numpy as np
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
 # pylint: disable=wrong-import-position
-from plate import driver, Plate
+from plate import driver
 from vicon import Vicon
 
 
@@ -28,12 +27,15 @@ class ForceMatrixCalculator:
         self.right_matrix = np.zeros((self.upper_bound * 10, 9), dtype="float")
 
     def find_force_matrix(self):
+        """Helper method for finding force matrix at each frame"""
         for plate_obj in self.plate_objs:
             self.process_plate(plate_obj)
         return self.left_matrix, self.right_matrix
 
     def process_plate(self, plate_obj):
+        """Filter plate data and prepare for information retreival"""
         plate_name = plate_obj.name
+        #pylint: disable=attribute-defined-outside-init
         self.total_x_moment = np.zeros(self.upper_bound * 10)
         self.total_z_moment = np.zeros(self.upper_bound * 10)
         self.total_y_moment = np.zeros(self.upper_bound * 10)
@@ -47,6 +49,7 @@ class ForceMatrixCalculator:
             self.process_frames(plate_obj, side, intervals)
 
     def process_frames(self, plate_obj, side, intervals):
+        """Calculate moment, cop, and force at each frame within user-defined region"""
         for interval in intervals:
             for j in range(interval[0] * 10, interval[1] * 10):
                 rel_pos_on_plate, world_force, world_moment, world_raw_loc = (
@@ -77,6 +80,7 @@ class ForceMatrixCalculator:
                 self.update_matrices(side, j, force_cols, torque_cols, cop_cols)
 
     def update_matrices(self, side, j, force_cols, torque_cols, cop_cols):
+        """Update matrices for each foot based on calculations"""
         if side == "left":
             self.left_matrix[j, :3] += force_cols
             self.left_matrix[j, 3:6] += cop_cols
@@ -88,6 +92,7 @@ class ForceMatrixCalculator:
 
 
     def compute_forces_and_moments(self, plate_obj, j):
+        """Get plate data and perform initial matrix rotation to properly format data"""
         fx = plate_obj.fx[j - 10]
         fy = plate_obj.fy[j - 10]
         fz = plate_obj.fz[j - 10]
@@ -111,7 +116,6 @@ class ForceMatrixCalculator:
         rotw = np.array([wr[:3], wr[3:6], wr[6:]])
         world_force = rotw @ force_on_plate
         world_moment = rotw @ moment_on_plate
-        world_loc = rotw @ rel_pos_on_plate
         world_raw_loc = rotw @ raw_pos_on_plate
 
         return rel_pos_on_plate, world_force, world_moment, world_raw_loc
