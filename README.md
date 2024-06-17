@@ -1,5 +1,5 @@
 # Vicon Sync
-A simple script using the Vicon Nexus SDK to automatically detect gait cycles within subjects and aggregate force plate data, eliminating the need to manually collect marker data for a trial.
+A simple script using the Vicon Nexus SDK to automatically detect gait cycles within subjects and aggregate force plate data, eliminating the need to manually compile marker and force plate data for a trial.
 ## Setup
 Setting up Vicon Sync for your own Vicon Nexus configuration is straightforward and easy to do.
 ### 1. Clone the repository
