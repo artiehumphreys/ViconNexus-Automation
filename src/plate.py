@@ -17,6 +17,8 @@ plate_configs = {
     (300.0, 300.0, 0.0): "Plate9",
 }
 
+left_foot = Foot("left")
+right_foot = Foot("right")
 
 class Plate:
     def __init__(self, name, vicon):
@@ -110,6 +112,10 @@ class Plate:
     def find_plate_matches(self, strike_intervals):
         """Match strike intervals on a plate to a foot"""
 
+        results = {"left": [], "right": []}
+        if len(strike_intervals) == 0:
+            return results
+
         def is_intersecting(box1, box2):
             min_x1, max_x1, min_y1, max_y1 = box1
             min_x2, max_x2, min_y2, max_y2 = box2
@@ -125,11 +131,6 @@ class Plate:
                     return True
             return False
 
-        left_foot = Foot("left")
-        right_foot = Foot("right")
-        results = {"left": [], "right": []}
-        if len(strike_intervals) == 0:
-            return results
         plate_bounds = [self.wt[0] - 300, self.wt[0] + 300, self.wt[1] - 300, self.wt[1] + 300]  # type: ignore
         for foot in self.vicon.strike_events:
             for i in range(len(self.vicon.off_events[foot])):
@@ -144,8 +145,12 @@ class Plate:
                     )
                     min_x, max_x, min_y, max_y = bbox
                     # foot not in bounds of the plates
-                    if 2712 < min_x and 300 > max_x and 903 < min_y and 0 > max_y or not frame_in_strike_interval(
-                        j
+                    if (
+                        2712 < min_x
+                        and 300 > max_x
+                        and 903 < min_y
+                        and 0 > max_y
+                        or not frame_in_strike_interval(j)
                     ):
                         continue
                     if is_intersecting(bbox, plate_bounds):
