@@ -41,6 +41,6 @@ class Foot:
         max_x = max(self.x_coords[marker][i] for marker in self.markers)
         min_y = min(self.y_coords[marker][i] for marker in self.markers)
         max_y = max(self.y_coords[marker][i] for marker in self.markers)
-        box = (min_x, max_x, min_y, max_y)
+        box = (min_x - 20, max_x + 20, min_y - 20, max_y + 20)
         return box
             

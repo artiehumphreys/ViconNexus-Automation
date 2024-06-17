@@ -128,6 +128,8 @@ class Plate:
         left_foot = Foot("left")
         right_foot = Foot("right")
         results = {"left": [], "right": []}
+        if len(strike_intervals) == 0:
+            return results
         plate_bounds = [self.wt[0] - 300, self.wt[0] + 300, self.wt[1] - 300, self.wt[1] + 300]  # type: ignore
         for foot in self.vicon.strike_events:
             for i in range(len(self.vicon.off_events[foot])):
