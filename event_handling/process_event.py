@@ -36,6 +36,9 @@ def find_force_matrix(results: list, plate_objs: list[Plate]):
                     fx = fp.fx[j - 10]
                     fy = fp.fy[j - 10]
                     fz = fp.fz[j - 10]
+                    copx_raw = fp.copx_raw[j - 10]
+                    copy_raw = fp.copy_raw[j - 10]
+                    copz_raw = fp.copz_raw[j - 10]
                     copx = fp.copx[j - 10]
                     copy = fp.copy[j - 10]
                     copz = fp.copz[j - 10]
@@ -47,17 +50,19 @@ def find_force_matrix(results: list, plate_objs: list[Plate]):
                     force_on_plate = np.array([fx, fy, fz])
                     moment_on_plate = np.array([mx, my, mz])
                     rel_pos_on_plate = np.array([copx, copy, copz])
+                    raw_pos_on_plate = np.array([copx_raw, copy_raw, copz_raw])
 
                     rotw = [wr[:3], wr[3:6], wr[6:]]
 
                     world_force = rotw @ force_on_plate
                     world_moment = rotw @ moment_on_plate
                     world_loc = rotw @ rel_pos_on_plate
+                    world_raw_loc = rotw @ raw_pos_on_plate
 
                     total_x_moment[j] += rel_pos_on_plate[1] * world_force[2]
                     total_z_moment[j] = -(
                         rel_pos_on_plate[1] * world_force[0]
-                        - rel_pos_on_plate[0] * world_force[1]
+                        -rel_pos_on_plate[0] * world_force[1]
                     )
                     total_y_moment[j] += -rel_pos_on_plate[0] * world_force[2]
 
@@ -67,11 +72,14 @@ def find_force_matrix(results: list, plate_objs: list[Plate]):
 
                     # Only for OpenSim:
                     adj_moment = np.zeros(3)
-                    adj_moment[2] = (
-                        world_moment[2]
-                        + world_force[0] * world_loc[1]
-                        - world_force[1] * world_loc[0]
+                    adj_moment[2] = ( world_moment[2] +
+                        world_force[0] * world_raw_loc[1]
+                        - world_force[1] * world_raw_loc[0]
                     ) /1000
+                    if j == 5787:
+                        ic.ic(world_moment[0] +
+                        world_force[1] * world_loc[0]
+                        - world_force[0] * world_loc[1])
                     force_cols = -world_force @ x270_matrix  # type: ignore
                     torque_cols = -adj_moment @ x270_matrix
                     cop_cols = np.array([cop_x / 1000, cop_y / 1000, 0]) @ x270_matrix
@@ -83,7 +91,7 @@ def find_force_matrix(results: list, plate_objs: list[Plate]):
                     else:
                         right_matrix[j, :3] += force_cols
                         right_matrix[j, 3:6] += cop_cols
-                        right_matrix[j, 6:] = torque_cols
+                        right_matrix[j, 6:] += torque_cols
                     if j == 5787:
                         ic.ic(force_cols, cop_cols, torque_cols, [total_x_moment[j], total_y_moment[j], total_z_moment[j]])
     return left_matrix, right_matrix

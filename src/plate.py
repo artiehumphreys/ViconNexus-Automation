@@ -1,4 +1,5 @@
 import math
+import copy
 import numpy as np
 import matplotlib.pyplot as plt
 from vicon import Vicon
@@ -68,10 +69,13 @@ class Plate:
                     self.copx = self.vicon.vicon.GetDeviceChannel(device_id, 3, 1)[0]
                     self.copy = self.vicon.vicon.GetDeviceChannel(device_id, 3, 2)[0]
                     self.copz = self.vicon.vicon.GetDeviceChannel(device_id, 3, 3)[0]
+                    self.copx_raw = copy.deepcopy(self.copx)
+                    self.copy_raw = copy.deepcopy(self.copy)
+                    self.copz_raw = copy.deepcopy(self.copz)
                     self.mx = self.vicon.vicon.GetDeviceChannel(device_id, 2, 1)[0]
                     self.my = self.vicon.vicon.GetDeviceChannel(device_id, 2, 2)[0]
                     self.mz = self.vicon.vicon.GetDeviceChannel(device_id, 2, 3)[0]
-                    for idx, (a,b) in enumerate(zip(self.copx, self.copy)):
+                    for idx, (a, b) in enumerate(zip(self.copx, self.copy)):
                         self.copx[idx] = self.wt[0] - b
                         self.copy[idx] = self.wt[1] + a
                     strike = self.find_plate_strikes()
@@ -105,6 +109,7 @@ class Plate:
 
     def find_plate_matches(self, strike_intervals):
         """Match strike intervals on a plate to a foot"""
+
         def is_intersecting(box1, box2):
             min_x1, max_x1, min_y1, max_y1 = box1
             min_x2, max_x2, min_y2, max_y2 = box2
@@ -124,9 +129,12 @@ class Plate:
         right_foot = Foot("right")
         results = {"left": [], "right": []}
         plate_bounds = [self.wt[0] - 300, self.wt[0] + 300, self.wt[1] - 300, self.wt[1] + 300]  # type: ignore
-        for foot in self.vicon.strike_events:  # type: ignore
-            for i in range(len(self.vicon.off_events[foot])):  # type: ignore
-                for j in range(self.vicon.strike_events[foot][i], (self.vicon.off_events[foot][i] + 1)):  # type: ignore
+        for foot in self.vicon.strike_events:
+            for i in range(len(self.vicon.off_events[foot])):
+                for j in range(
+                    self.vicon.strike_events[foot][i],
+                    (self.vicon.off_events[foot][i] + 1),
+                ):
                     bbox = (
                         right_foot.calculate_bounding_box(j)
                         if foot == "right"
@@ -195,7 +203,8 @@ class Plate:
         plt.grid(True)
         plt.show()
 
-#pylint: disable=missing-function-docstring
+
+# pylint: disable=missing-function-docstring
 def driver():
     vicon = Vicon()
     plates = [
