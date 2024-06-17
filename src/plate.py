@@ -142,11 +142,11 @@ class Plate:
                     )
                     min_x, max_x, min_y, max_y = bbox
                     # foot not in bounds of the plates
-                    if 2712 < min_x and 300 > max_x and 903 < min_y and 0 > max_y:
-                        continue
-                    if is_intersecting(bbox, plate_bounds) and frame_in_strike_interval(
+                    if 2712 < min_x and 300 > max_x and 903 < min_y and 0 > max_y or not frame_in_strike_interval(
                         j
                     ):
+                        continue
+                    if is_intersecting(bbox, plate_bounds):
                         results[foot].append(j)
         results = self.format_results(results)
         return results
@@ -225,7 +225,9 @@ def driver():
         p = Plate(plate, vicon)
         plate_objs.append(p)
         intervals = p.fetch_plate_data()
+        print(intervals)
         results[plate] = p.find_plate_matches(intervals)
+    print(results)
     return results, plate_objs
 
 

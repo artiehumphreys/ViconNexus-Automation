@@ -12,6 +12,7 @@ from vicon import Vicon
 # pylint: disable=too-many-statements
 class ForceMatrixCalculator:
     def __init__(self, results, plate_objs):
+        print(results)
         self.results = results
         self.plate_objs = plate_objs
         self.vicon = Vicon()
