@@ -56,9 +56,11 @@ class Foot:
         return min_x, max_x, min_y, max_y
 
     def find_min_z(self, i):
+        """Calculate the minimum z-coordinate given all of the markers"""
         return min(self.z_coords[marker][i] for marker in self.markers)
 
     def is_strike_in_plate(self, cop_x, cop_y, min_z, i):
+        """Check if the foot is within 20cm of center of pressure and below a z threshold"""
         threshold = 200
         for marker in self.markers:
             if (
