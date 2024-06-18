@@ -1,4 +1,6 @@
+import numpy as np
 from vicon import Vicon
+from scipy.spatial import ConvexHull
 
 right_foot_markers = (
     "RD2P",
@@ -37,18 +39,28 @@ class Foot:
 
     def calculate_bounding_box(self, i):
         """Calculate a bounding box for the foot at a given frame using marker data"""
-        min_x = min(self.x_coords[marker][i] for marker in self.markers)
-        max_x = max(self.x_coords[marker][i] for marker in self.markers)
-        min_y = min(self.y_coords[marker][i] for marker in self.markers)
-        max_y = max(self.y_coords[marker][i] for marker in self.markers)
-        min_z = min(self.z_coords[marker][i] for marker in self.markers)
-        box = (min_x, max_x, min_y, max_y, min_z)
-        return box
+        points = np.array(
+            [
+                [self.x_coords[marker][i], self.y_coords[marker][i]]
+                for marker in self.markers
+            ]
+        )
+        box = ConvexHull(points)
+
+        hull_points = points[box.vertices]
+
+        min_x = min(hull_points[:, 0])
+        max_x = max(hull_points[:, 0])
+        min_y = min(hull_points[:, 1])
+        max_y = max(hull_points[:, 1])
+        return min_x, max_x, min_y, max_y
+
+    def find_min_z(self, i):
+        return min(self.z_coords[marker][i] for marker in self.markers)
 
     def is_strike_in_plate(self, cop_x, cop_y, min_z, i):
-        threshold = 100
+        threshold = 200
         for marker in self.markers:
-            print(cop_x, self.x_coords[marker][i], cop_y, self.y_coords[marker][i])
             if (
                 self.x_coords[marker][i] - threshold
                 <= cop_x
@@ -58,8 +70,5 @@ class Foot:
                 <= self.y_coords[marker][i] + threshold
                 and self.z_coords[marker][i] < min_z + threshold / 4
             ):
-                print(
-                    f"{marker}: {self.x_coords[marker][i]}, {cop_x}, {self.y_coords[marker][i]}, {cop_y}, {i}"
-                )
                 return True
         return False
