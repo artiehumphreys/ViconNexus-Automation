@@ -17,6 +17,9 @@ plate_configs = {
     (300.0, 300.0, 0.0): "Plate9",
 }
 
+left_foot = Foot("left")
+right_foot = Foot("right")
+
 
 class Plate:
     def __init__(self, name, vicon):
@@ -110,12 +113,9 @@ class Plate:
     def find_plate_matches(self, strike_intervals):
         """Match strike intervals on a plate to a foot"""
 
-        def is_intersecting(box1, box2):
-            min_x1, max_x1, min_y1, max_y1 = box1
-            min_x2, max_x2, min_y2, max_y2 = box2
-            x_overlap = not (max_x1 < min_x2 or max_x2 < min_x1)
-            y_overlap = not (max_y1 < min_y2 or max_y2 < min_y1)
-            return x_overlap and y_overlap
+        results = {"left": [], "right": []}
+        if len(strike_intervals) == 0:
+            return results
 
         def frame_in_strike_interval(j):
             for intervals in strike_intervals:
@@ -125,29 +125,33 @@ class Plate:
                     return True
             return False
 
-        left_foot = Foot("left")
-        right_foot = Foot("right")
-        results = {"left": [], "right": []}
-        plate_bounds = [self.wt[0] - 300, self.wt[0] + 300, self.wt[1] - 300, self.wt[1] + 300]  # type: ignore
         for foot in self.vicon.strike_events:
             for i in range(len(self.vicon.off_events[foot])):
                 for j in range(
                     self.vicon.strike_events[foot][i],
                     (self.vicon.off_events[foot][i] + 1),
                 ):
-                    bbox = (
-                        right_foot.calculate_bounding_box(j)
-                        if foot == "right"
-                        else left_foot.calculate_bounding_box(j)
-                    )
-                    min_x, max_x, min_y, max_y = bbox
                     # foot not in bounds of the plates
-                    if 2712 < min_x and 300 > max_x and 903 < min_y and 0 > max_y:
+                    if not frame_in_strike_interval(j):
                         continue
-                    if is_intersecting(bbox, plate_bounds) and frame_in_strike_interval(
-                        j
-                    ):
-                        results[foot].append(j)
+                    if foot == "left":
+                        min_z = left_foot.find_min_z(j)
+                        if left_foot.is_strike_in_plate(
+                            self.copx[j * 10 - 10],
+                            self.copy[j * 10 - 10],
+                            min_z,
+                            j,
+                        ):
+                            results[foot].append(j)
+                    else:
+                        min_z = right_foot.find_min_z(j)
+                        if right_foot.is_strike_in_plate(
+                            self.copx[j * 10 - 10],
+                            self.copy[j * 10 - 10],
+                            min_z,
+                            j,
+                        ):
+                            results[foot].append(j)
         results = self.format_results(results)
         return results
 
@@ -161,7 +165,7 @@ class Plate:
             start = left[0]
             end = left[0]
             for i in range(1, len(left)):
-                if left[i] == end + 1:
+                if left[i] == end + 1 or left[i] == end + 2:
                     end = left[i]
                 else:
                     left_intervals.append((start, end))
@@ -173,7 +177,7 @@ class Plate:
             start = right[0]
             end = right[0]
             for i in range(1, len(right)):
-                if right[i] == end + 1:
+                if right[i] == end + 1 or right[i] == end + 2:
                     end = right[i]
                 else:
                     right_intervals.append((start, end))
@@ -225,7 +229,9 @@ def driver():
         p = Plate(plate, vicon)
         plate_objs.append(p)
         intervals = p.fetch_plate_data()
+        print(intervals)
         results[plate] = p.find_plate_matches(intervals)
+    print(results)
     return results, plate_objs
 
 

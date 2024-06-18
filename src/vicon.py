@@ -6,7 +6,7 @@ class Vicon:
         self.vicon = ViconNexus.ViconNexus()
         player_file = "Play-07"
 
-        file = rf"C:\Users\ahumphreys\EXOS_Processing\{player_file}\Cleat02\{player_file.replace('-', '')}_Cleat02_Trial05"
+        file = rf"C:\Users\ahumphreys\EXOS_Processing\{player_file}\Cleat02\{player_file.replace('-', '')}_Cleat02_Trial06"
         self.vicon.OpenTrial(file, 30)
 
         self.subject = self.vicon.GetSubjectNames()[0]
