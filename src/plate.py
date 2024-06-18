@@ -20,6 +20,7 @@ plate_configs = {
 left_foot = Foot("left")
 right_foot = Foot("right")
 
+
 class Plate:
     def __init__(self, name, vicon):
         self.name = name
@@ -153,12 +154,29 @@ class Plate:
                         or not frame_in_strike_interval(j)
                     ):
                         continue
-                    if foot == 'left':
-                        if is_intersecting(bbox, plate_bounds) and frame_in_strike_interval(j) and left_foot.is_strike_in_plate(self.copx[j * 10 - 10], self.copy[j * 10 - 10], min_z, j):
+                    if foot == "left":
+                        if (
+                            is_intersecting(bbox, plate_bounds)
+                            and frame_in_strike_interval(j)
+                            and left_foot.is_strike_in_plate(
+                                self.copx[j * 10 - 10],
+                                self.copy[j * 10 - 10],
+                                min_z,
+                                j,
+                            )
+                        ):
                             results[foot].append(j)
                     else:
-                        if is_intersecting(bbox, plate_bounds) and frame_in_strike_interval(j) and right_foot.is_strike_in_plate(self.copx[j * 10 - 10], self.copy[j * 10 - 10
-                        ], min_z, j):
+                        if (
+                            is_intersecting(bbox, plate_bounds)
+                            and frame_in_strike_interval(j)
+                            and right_foot.is_strike_in_plate(
+                                self.copx[j * 10 - 10],
+                                self.copy[j * 10 - 10],
+                                min_z,
+                                j,
+                            )
+                        ):
                             results[foot].append(j)
         results = self.format_results(results)
         return results

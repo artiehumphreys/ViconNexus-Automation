@@ -48,15 +48,18 @@ class Foot:
     def is_strike_in_plate(self, cop_x, cop_y, min_z, i):
         threshold = 100
         for marker in self.markers:
+            print(cop_x, self.x_coords[marker][i], cop_y, self.y_coords[marker][i])
             if (
-                2712 - self.x_coords[marker][i] - threshold
+                self.x_coords[marker][i] - threshold
                 <= cop_x
                 <= self.x_coords[marker][i] + threshold
-                and 900 - self.y_coords[marker][i] - threshold
+                and self.y_coords[marker][i] - threshold
                 <= cop_y
                 <= self.y_coords[marker][i] + threshold
-                and self.z_coords[marker][i] < min_z + threshold / 2
+                and self.z_coords[marker][i] < min_z + threshold / 4
             ):
-                print(f"{marker}: {self.x_coords[marker][i]}, {cop_x}, {self.y_coords[marker][i]}, {cop_y}, {i}")
+                print(
+                    f"{marker}: {self.x_coords[marker][i]}, {cop_x}, {self.y_coords[marker][i]}, {cop_y}, {i}"
+                )
                 return True
         return False
