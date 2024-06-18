@@ -41,6 +41,19 @@ class Foot:
         max_x = max(self.x_coords[marker][i] for marker in self.markers)
         min_y = min(self.y_coords[marker][i] for marker in self.markers)
         max_y = max(self.y_coords[marker][i] for marker in self.markers)
-        box = (min_x - 20, max_x + 20, min_y - 20, max_y + 20)
+        min_z = min(self.z_coords[marker][i] for marker in self.markers)
+        box = (min_x, max_x, min_y, max_y, min_z)
         return box
-            
+
+    def is_strike_in_plate(self, plate_bounds, min_z, i):
+        min_x_plate, max_x_plate, min_y_plate, max_y_plate = plate_bounds
+        threshold = 25
+        for marker in self.markers:
+            if (
+                min_x_plate - threshold <= self.x_coords[marker][i] <= max_x_plate + threshold
+                and min_y_plate - threshold <= self.y_coords[marker][i] <= max_y_plate + threshold
+                and self.z_coords[marker][i] < min_z + threshold
+            ):
+                print(f"{marker}: {i}, {self.y_coords[marker][i]}, {min_y_plate}, {max_y_plate}")
+                return True
+        return False

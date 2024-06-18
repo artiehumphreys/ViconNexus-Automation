@@ -117,7 +117,7 @@ class Plate:
             return results
 
         def is_intersecting(box1, box2):
-            min_x1, max_x1, min_y1, max_y1 = box1
+            min_x1, max_x1, min_y1, max_y1, _ = box1
             min_x2, max_x2, min_y2, max_y2 = box2
             x_overlap = not (max_x1 < min_x2 or max_x2 < min_x1)
             y_overlap = not (max_y1 < min_y2 or max_y2 < min_y1)
@@ -143,7 +143,7 @@ class Plate:
                         if foot == "right"
                         else left_foot.calculate_bounding_box(j)
                     )
-                    min_x, max_x, min_y, max_y = bbox
+                    min_x, max_x, min_y, max_y, min_z = bbox
                     # foot not in bounds of the plates
                     if (
                         2712 < min_x
@@ -153,8 +153,12 @@ class Plate:
                         or not frame_in_strike_interval(j)
                     ):
                         continue
-                    if is_intersecting(bbox, plate_bounds):
-                        results[foot].append(j)
+                    if foot == 'left':
+                        if is_intersecting(bbox, plate_bounds) and frame_in_strike_interval(j) and left_foot.is_strike_in_plate(plate_bounds, min_z, j):
+                            results[foot].append(j)
+                    else:
+                        if is_intersecting(bbox, plate_bounds) and frame_in_strike_interval(j) and right_foot.is_strike_in_plate(plate_bounds, min_z, j):
+                            results[foot].append(j)
         results = self.format_results(results)
         return results
 
@@ -168,7 +172,7 @@ class Plate:
             start = left[0]
             end = left[0]
             for i in range(1, len(left)):
-                if left[i] == end + 1:
+                if left[i] == end + 1 or left[i] == end + 2:
                     end = left[i]
                 else:
                     left_intervals.append((start, end))
@@ -180,7 +184,7 @@ class Plate:
             start = right[0]
             end = right[0]
             for i in range(1, len(right)):
-                if right[i] == end + 1:
+                if right[i] == end + 1 or right[i] == end + 2:
                     end = right[i]
                 else:
                     right_intervals.append((start, end))
