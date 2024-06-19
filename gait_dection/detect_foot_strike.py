@@ -1,3 +1,5 @@
+# pylint: disable=missing-module-docstring
+
 import heapq
 import numpy as np
 import matplotlib.pyplot as plt

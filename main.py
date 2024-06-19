@@ -1,3 +1,5 @@
+# pylint: disable=missing-module-docstring
+
 from event_handling import process_event
 
 

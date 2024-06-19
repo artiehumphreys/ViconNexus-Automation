@@ -1,3 +1,4 @@
+# pylint: disable=missing-module-docstring
 import numpy as np
 from scipy.spatial import ConvexHull
 from vicon import Vicon

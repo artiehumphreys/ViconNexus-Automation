@@ -1,3 +1,5 @@
+# pylint: disable=missing-module-docstring
+
 import math
 import copy
 import numpy as np
