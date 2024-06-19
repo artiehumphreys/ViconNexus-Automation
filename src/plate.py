@@ -21,7 +21,10 @@ left_foot = Foot("left")
 right_foot = Foot("right")
 
 
+# pylint: disable=too-many-instance-attributes
 class Plate:
+    """Class for a force plate, with attributes for the respective forces"""
+
     def __init__(self, name, vicon):
         self.name = name
         self.vicon = vicon

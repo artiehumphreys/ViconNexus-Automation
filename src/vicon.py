@@ -2,11 +2,13 @@ from viconnexusapi import ViconNexus
 
 
 class Vicon:
+    """Class for a singleton Vicon object to access the Vicon Nexus data"""
+
     def __init__(self):
         self.vicon = ViconNexus.ViconNexus()
         player_file = "Play-07"
 
-        file = rf"C:\Users\ahumphreys\EXOS_Processing\{player_file}\Cleat02\{player_file.replace('-', '')}_Cleat02_Trial06"
+        file = rf"C:\Users\ahumphreys\EXOS_Processing\{player_file}\Cleat02\{player_file.replace('-', '')}_Cleat02_Trial05"
         self.vicon.OpenTrial(file, 30)
 
         self.subject = self.vicon.GetSubjectNames()[0]

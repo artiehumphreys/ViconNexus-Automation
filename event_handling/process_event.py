@@ -11,6 +11,8 @@ from vicon import Vicon
 # pylint: disable=too-many-locals
 # pylint: disable=too-many-statements
 class ForceMatrixCalculator:
+    """Class to calculate force, moment, and center of pressure data and export to .xlsx"""
+
     def __init__(self, results, plate_objs):
         print(results)
         self.results = results
@@ -36,7 +38,7 @@ class ForceMatrixCalculator:
     def process_plate(self, plate_obj):
         """Filter plate data and prepare for information retreival"""
         plate_name = plate_obj.name
-        #pylint: disable=attribute-defined-outside-init
+        # pylint: disable=attribute-defined-outside-init
         self.total_x_moment = np.zeros(self.upper_bound * 10)
         self.total_z_moment = np.zeros(self.upper_bound * 10)
         self.total_y_moment = np.zeros(self.upper_bound * 10)
@@ -90,7 +92,6 @@ class ForceMatrixCalculator:
             self.right_matrix[j, :3] += force_cols
             self.right_matrix[j, 3:6] += cop_cols
             self.right_matrix[j, 6:] += torque_cols
-
 
     def compute_forces_and_moments(self, plate_obj, j):
         """Get plate data and perform initial matrix rotation to properly format data"""
@@ -149,6 +150,7 @@ class ForceMatrixCalculator:
             cop_overall_y = np.nan
 
         return cop_overall_x, cop_overall_y
+
 
 # pylint: disable=missing-function-docstring
 def main():
