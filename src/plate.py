@@ -233,9 +233,7 @@ def driver():
         p = Plate(plate, vicon)
         plate_objs.append(p)
         intervals = p.fetch_plate_data()
-        print(intervals)
         results[plate] = p.find_plate_matches(intervals)
-    print(results)
     return results, plate_objs
 
 

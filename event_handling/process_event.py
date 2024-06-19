@@ -1,6 +1,7 @@
 import sys
 import os
 import numpy as np
+import pandas as pd
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
 # pylint: disable=wrong-import-position
@@ -151,11 +152,13 @@ class ForceMatrixCalculator:
 
 # pylint: disable=missing-function-docstring
 def main():
-    np.set_printoptions(threshold=sys.maxsize)
     results, plate_objs = driver()
     calc = ForceMatrixCalculator(results, plate_objs)
-    left, _ = calc.find_force_matrix()
-    np.savetxt("res.csv", left, delimiter=",")  # type: ignore
+    left, right = calc.find_force_matrix()
+    df_left = pd.DataFrame(left)
+    df_right = pd.DataFrame(right)
+    df_left.to_excel("left_foot_results.xlsx")
+    df_right.to_excel("right_foot_results.xlsx")
 
 
 if __name__ == "__main__":
