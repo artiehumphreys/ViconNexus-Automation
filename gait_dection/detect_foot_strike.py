@@ -25,6 +25,8 @@ left_foot_markers = (
 
 
 class Marker:
+    """Marker class used for detecting gait cycles"""
+
     def __init__(self, name: str):
         self.marker = name
         self.z_coords = []
@@ -48,21 +50,25 @@ class Marker:
         self.z_velo = self.z_velo[0]
         self.z_accel = self.z_accel[0]
         self.z_jerk = self.z_jerk[0]
+
     # pylint: disable=missing-function-docstring
     def is_z_accel_peak(self, i, threshold: float = 4):
         return (
             self.z_accel[i] > threshold
             and self.z_accel[i - 1] < self.z_accel[i] > self.z_accel[i + 1]
         )
+
     # pylint: disable=missing-function-docstring
     def is_z_velo_trough(self, i, threshold: float = -4):
         return (
             self.z_velo[i] < threshold
             and self.z_velo[i - 1] > self.z_velo[i] < self.z_velo[i + 1]
         )
+
     # pylint: disable=missing-function-docstring
     def is_z_velo_peak(self, i, threshold: float = 4):
         return self.z_velo[i] > threshold
+
     # pylint: disable=missing-function-docstring
     def is_z_jerk_trough(self, i, threshold: float = -0.75):
         return (

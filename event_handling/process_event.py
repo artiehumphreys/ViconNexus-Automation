@@ -80,21 +80,18 @@ class ForceMatrixCalculator:
                 torque_cols = -adj_moment @ self.x270_matrix
                 cop_cols = np.array([cop_x / 1000, cop_y / 1000, 0]) @ self.x270_matrix
 
-                self.update_matrices(side, j, force_cols, torque_cols, cop_cols)
-
-    def update_matrices(self, side, j, force_cols, torque_cols, cop_cols):
-        """Update matrices for each foot based on calculations"""
-        if side == "left":
-            self.left_matrix[j, :3] += force_cols
-            self.left_matrix[j, 3:6] += cop_cols
-            self.left_matrix[j, 6:] += torque_cols
-        else:
-            self.right_matrix[j, :3] += force_cols
-            self.right_matrix[j, 3:6] += cop_cols
-            self.right_matrix[j, 6:] += torque_cols
+                if side == "left":
+                    self.left_matrix[j, :3] += force_cols
+                    self.left_matrix[j, 3:6] += cop_cols
+                    self.left_matrix[j, 6:] += torque_cols
+                else:
+                    self.right_matrix[j, :3] += force_cols
+                    self.right_matrix[j, 3:6] += cop_cols
+                    self.right_matrix[j, 6:] += torque_cols
 
     def compute_forces_and_moments(self, plate_obj, j):
         """Get plate data and perform initial matrix rotation to properly format data"""
+        # 1 camera frame or 10 plate frames offset
         fx = plate_obj.fx[j - 10]
         fy = plate_obj.fy[j - 10]
         fz = plate_obj.fz[j - 10]
