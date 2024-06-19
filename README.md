@@ -20,4 +20,4 @@ pip install -r requirements.txt
 ### 4. Configure your trial
 To configure your own trial within Vicon, ensure the path within the Vicon class is correctly configured to the location of your ```.c3d``` files. The path can be set within the ```vicon.py``` file in the ```src``` folder.
 ### 5. Collect data
-After marking foot-strike and foot-up events using the Vicon Nexus application, you can run the data collection pipeline, the ```process_event.py``` file within the ```event_handling``` folder, to get all of the important trial information outside of the Vicon Nexus App.
+After marking foot-strike and foot-up events using the Vicon Nexus application, you can run the data collection pipeline by executing the ```main.py``` file. This process will export all trial information into two Excel sheets: one for right-foot data and another for left-foot data. The script effectively manages overlapping foot strikes and instances where a foot strikes multiple force plates, ensuring that the data is correctly assigned to each foot.
