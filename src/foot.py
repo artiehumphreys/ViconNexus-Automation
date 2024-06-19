@@ -1,6 +1,7 @@
+# pylint: disable=missing-module-docstring
 import numpy as np
-from vicon import Vicon
 from scipy.spatial import ConvexHull
+from vicon import Vicon
 
 right_foot_markers = (
     "RD2P",
@@ -24,6 +25,8 @@ left_foot_markers = (
 
 
 class Foot:
+    """Class for a foot object, made up of the different markers of either the left or right foot"""
+
     def __init__(self, foot: str = "right"):
         self.markers = left_foot_markers if foot == "left" else right_foot_markers
         self.foot = foot
@@ -70,7 +73,7 @@ class Foot:
                 and self.y_coords[marker][i] - threshold
                 <= cop_y
                 <= self.y_coords[marker][i] + threshold
-                and self.z_coords[marker][i] < min_z + threshold / 4
+                and self.z_coords[marker][i] < min_z + threshold / 8
             ):
                 return True
         return False

@@ -1,30 +1,15 @@
+# pylint: disable=missing-module-docstring
+
 import heapq
 import numpy as np
 import matplotlib.pyplot as plt
 from vicon import Vicon
 
-right_foot_markers = (
-    "RD2P",
-    "RD5P",
-    "RHEE",
-    "RLATH",
-    "RD5M",
-    "RD1M",
-    "RP1M",
-)
 
-left_foot_markers = (
-    "LD2P",
-    "LD5P",
-    "LHEE",
-    "LLATH",
-    "LD5M",
-    "LD1M",
-    "LP1M",
-)
-
-
+# pylint: disable=too-many-instance-attributes
 class Marker:
+    """Marker class used for detecting gait cycles"""
+
     def __init__(self, name: str):
         self.marker = name
         self.z_coords = []
@@ -48,21 +33,25 @@ class Marker:
         self.z_velo = self.z_velo[0]
         self.z_accel = self.z_accel[0]
         self.z_jerk = self.z_jerk[0]
+
     # pylint: disable=missing-function-docstring
     def is_z_accel_peak(self, i, threshold: float = 4):
         return (
             self.z_accel[i] > threshold
             and self.z_accel[i - 1] < self.z_accel[i] > self.z_accel[i + 1]
         )
+
     # pylint: disable=missing-function-docstring
     def is_z_velo_trough(self, i, threshold: float = -4):
         return (
             self.z_velo[i] < threshold
             and self.z_velo[i - 1] > self.z_velo[i] < self.z_velo[i + 1]
         )
+
     # pylint: disable=missing-function-docstring
     def is_z_velo_peak(self, i, threshold: float = 4):
         return self.z_velo[i] > threshold
+
     # pylint: disable=missing-function-docstring
     def is_z_jerk_trough(self, i, threshold: float = -0.75):
         return (
@@ -188,7 +177,7 @@ def main():
     marker = Marker("RD2P")
     marker.plot_markers(lower, upper)
     lis = []
-    for marker in right_foot_markers[:3]:
+    for marker in ["RD2P", "RD5P", "RHEE"]:
         marker = Marker(marker)
         li = marker.find_foot_strike()
         lis.append(li)

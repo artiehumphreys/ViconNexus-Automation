@@ -1,6 +1,9 @@
+# pylint: disable=missing-module-docstring
+
 import sys
 import os
 import numpy as np
+import pandas as pd
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
 # pylint: disable=wrong-import-position
@@ -10,7 +13,10 @@ from vicon import Vicon
 
 # pylint: disable=too-many-locals
 # pylint: disable=too-many-statements
+# pylint: disable=too-many-instance-attributes
 class ForceMatrixCalculator:
+    """Class to calculate force, moment, and center of pressure data and export to .xlsx"""
+
     def __init__(self, results, plate_objs):
         print(results)
         self.results = results
@@ -36,7 +42,7 @@ class ForceMatrixCalculator:
     def process_plate(self, plate_obj):
         """Filter plate data and prepare for information retreival"""
         plate_name = plate_obj.name
-        #pylint: disable=attribute-defined-outside-init
+        # pylint: disable=attribute-defined-outside-init
         self.total_x_moment = np.zeros(self.upper_bound * 10)
         self.total_z_moment = np.zeros(self.upper_bound * 10)
         self.total_y_moment = np.zeros(self.upper_bound * 10)
@@ -78,22 +84,18 @@ class ForceMatrixCalculator:
                 torque_cols = -adj_moment @ self.x270_matrix
                 cop_cols = np.array([cop_x / 1000, cop_y / 1000, 0]) @ self.x270_matrix
 
-                self.update_matrices(side, j, force_cols, torque_cols, cop_cols)
-
-    def update_matrices(self, side, j, force_cols, torque_cols, cop_cols):
-        """Update matrices for each foot based on calculations"""
-        if side == "left":
-            self.left_matrix[j, :3] += force_cols
-            self.left_matrix[j, 3:6] += cop_cols
-            self.left_matrix[j, 6:] += torque_cols
-        else:
-            self.right_matrix[j, :3] += force_cols
-            self.right_matrix[j, 3:6] += cop_cols
-            self.right_matrix[j, 6:] += torque_cols
-
+                if side == "left":
+                    self.left_matrix[j, :3] += force_cols
+                    self.left_matrix[j, 3:6] += cop_cols
+                    self.left_matrix[j, 6:] += torque_cols
+                else:
+                    self.right_matrix[j, :3] += force_cols
+                    self.right_matrix[j, 3:6] += cop_cols
+                    self.right_matrix[j, 6:] += torque_cols
 
     def compute_forces_and_moments(self, plate_obj, j):
         """Get plate data and perform initial matrix rotation to properly format data"""
+        # 1 camera frame or 10 plate frames offset
         fx = plate_obj.fx[j - 10]
         fy = plate_obj.fy[j - 10]
         fz = plate_obj.fz[j - 10]
@@ -150,13 +152,16 @@ class ForceMatrixCalculator:
 
         return cop_overall_x, cop_overall_y
 
+
 # pylint: disable=missing-function-docstring
 def main():
-    np.set_printoptions(threshold=sys.maxsize)
     results, plate_objs = driver()
     calc = ForceMatrixCalculator(results, plate_objs)
-    left, _ = calc.find_force_matrix()
-    np.savetxt("res.csv", left, delimiter=",")  # type: ignore
+    left, right = calc.find_force_matrix()
+    df_left = pd.DataFrame(left)
+    df_right = pd.DataFrame(right)
+    df_left.to_excel("left_foot_results.xlsx")
+    df_right.to_excel("right_foot_results.xlsx")
 
 
 if __name__ == "__main__":
