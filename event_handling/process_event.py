@@ -13,6 +13,7 @@ from vicon import Vicon
 
 # pylint: disable=too-many-locals
 # pylint: disable=too-many-statements
+# pylint: disable=too-many-instance-attributes
 class ForceMatrixCalculator:
     """Class to calculate force, moment, and center of pressure data and export to .xlsx"""
 

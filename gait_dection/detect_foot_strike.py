@@ -5,27 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from vicon import Vicon
 
-right_foot_markers = (
-    "RD2P",
-    "RD5P",
-    "RHEE",
-    "RLATH",
-    "RD5M",
-    "RD1M",
-    "RP1M",
-)
 
-left_foot_markers = (
-    "LD2P",
-    "LD5P",
-    "LHEE",
-    "LLATH",
-    "LD5M",
-    "LD1M",
-    "LP1M",
-)
-
-
+# pylint: disable=too-many-instance-attributes
 class Marker:
     """Marker class used for detecting gait cycles"""
 
@@ -196,7 +177,7 @@ def main():
     marker = Marker("RD2P")
     marker.plot_markers(lower, upper)
     lis = []
-    for marker in right_foot_markers[:3]:
+    for marker in ["RD2P", "RD5P", "RHEE"]:
         marker = Marker(marker)
         li = marker.find_foot_strike()
         lis.append(li)
